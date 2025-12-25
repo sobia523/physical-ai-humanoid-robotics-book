@@ -2,7 +2,7 @@
 // `@type` JSDoc annotations allow IDEs and type-checking tools to autocomplete
 // @type {import('@docusaurus/types').Config}
 
-const {themes} = require('prism-react-renderer');
+const { themes } = require('prism-react-renderer');
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
@@ -14,7 +14,7 @@ const config = {
   url: 'https://your-username.github.io',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
-  baseUrl: '/Physical-AI-Humanoid-Robotics-Textbook/',
+  baseUrl: '/',
 
   // GitHub pages deployment config.
   organizationName: 'your-username', // Usually your GitHub org/user name.
