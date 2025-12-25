@@ -1,0 +1,258 @@
+# Isaac ROS LiDAR Perception Pipeline Configuration
+# Configuration for GPU-accelerated LiDAR processing
+
+pipeline:
+  name: "lidar_perception_pipeline"
+  description: "GPU-accelerated LiDAR perception pipeline for 3D object detection and mapping"
+
+nodes:
+  # LiDAR point cloud subscriber
+  - name: "lidar_subscriber"
+    package: "sensor_msgs_py"
+    executable: "pointcloud2_subscriber"
+    parameters:
+      - input_topic: "/lidar/points"
+      - qos_history: "keep_last"
+      - qos_depth: 10
+      - qos_reliability: "reliable"
+      - qos_durability: "volatile"
+
+  # GPU-accelerated point cloud preprocessing
+  - name: "pointcloud_preprocessor"
+    package: "isaac_ros_pointcloud_utils"
+    executable: "pointcloud_preprocessor_node"
+    parameters:
+      - input_topic: "/lidar/points"
+      - output_topic: "/lidar/points_preprocessed"
+      - use_gpu: true
+      - gpu_id: 0
+      - min_range: 0.5  # meters
+      - max_range: 100.0  # meters
+      - min_height: -2.0  # meters (below ground)
+      - max_height: 5.0  # meters (above ground)
+      - remove_ground: true
+      - ground_estimator_points: 100
+      - ground_estimator_max_iterations: 100
+      - ground_estimator_distance_threshold: 0.2
+      - input_qos_history: "keep_last"
+      - input_qos_depth: 10
+      - input_qos_reliability: "reliable"
+      - input_qos_durability: "volatile"
+      - output_qos_history: "keep_last"
+      - output_qos_depth: 10
+      - output_qos_reliability: "reliable"
+      - output_qos_durability: "volatile"
+
+  # GPU-accelerated voxel grid filtering
+  - name: "voxel_grid_filter"
+    package: "isaac_ros_voxel_grid"
+    executable: "voxel_grid_node"
+    parameters:
+      - input_topic: "/lidar/points_preprocessed"
+      - output_topic: "/lidar/points_filtered"
+      - use_gpu: true
+      - gpu_id: 0
+      - voxel_size_x: 0.1  # meters
+      - voxel_size_y: 0.1  # meters
+      - voxel_size_z: 0.1  # meters
+      - input_qos_history: "keep_last"
+      - input_qos_depth: 10
+      - input_qos_reliability: "reliable"
+      - input_qos_durability: "volatile"
+      - output_qos_history: "keep_last"
+      - output_qos_depth: 10
+      - output_qos_reliability: "reliable"
+      - output_qos_durability: "volatile"
+
+  # GPU-accelerated clustering
+  - name: "euclidean_cluster"
+    package: "isaac_ros_cluster_segmentation"
+    executable: "euclidean_cluster_node"
+    parameters:
+      - input_topic: "/lidar/points_filtered"
+      - output_clusters_topic: "/lidar/clusters"
+      - use_gpu: true
+      - gpu_id: 0
+      - cluster_tolerance: 0.5  # meters
+      - min_cluster_size: 10  # points
+      - max_cluster_size: 25000  # points
+      - input_qos_history: "keep_last"
+      - input_qos_depth: 10
+      - input_qos_reliability: "reliable"
+      - input_qos_durability: "volatile"
+      - output_qos_history: "keep_last"
+      - output_qos_depth: 10
+      - output_qos_reliability: "reliable"
+      - output_qos_durability: "volatile"
+
+  # GPU-accelerated 3D object detection
+  - name: "lidar_object_detector"
+    package: "isaac_ros_detectnet_3d"
+    executable: "lidar_detectnet_node"
+    parameters:
+      - input_pointcloud_topic: "/lidar/points_filtered"
+      - output_detections_topic: "/lidar/detections_3d"
+      - model_path: "/models/lidar_detectnet_model.plan"
+      - class_labels_path: "/models/lidar_class_labels.txt"
+      - use_gpu: true
+      - gpu_id: 0
+      - tensorrt_precision: "fp16"
+      - tensorrt_engine_cache: "/tmp/tensorrt_cache"
+      - enable_profiling: false
+      - min_detection_score: 0.5
+      - max_detections: 100
+      - input_qos_history: "keep_last"
+      - input_qos_depth: 10
+      - input_qos_reliability: "reliable"
+      - input_qos_durability: "volatile"
+      - output_qos_history: "keep_last"
+      - output_qos_depth: 10
+      - output_qos_reliability: "reliable"
+      - output_qos_durability: "volatile"
+
+  # GPU-accelerated ground plane estimation
+  - name: "ground_plane_estimator"
+    package: "isaac_ros_ground_plane_estimation"
+    executable: "ground_plane_node"
+    parameters:
+      - input_topic: "/lidar/points_preprocessed"
+      - output_coefficients_topic: "/lidar/ground_plane"
+      - use_gpu: true
+      - gpu_id: 0
+      - max_iterations: 1000
+      - distance_threshold: 0.2  # meters
+      - probability: 0.99
+      - max_optimization_iterations: 100
+      - input_qos_history: "keep_last"
+      - input_qos_depth: 10
+      - input_qos_reliability: "reliable"
+      - input_qos_durability: "volatile"
+      - output_qos_history: "keep_last"
+      - output_qos_depth: 10
+      - output_qos_reliability: "reliable"
+      - output_qos_durability: "volatile"
+
+  # GPU-accelerated freespace estimation
+  - name: "freespace_estimator"
+    package: "isaac_ros_freespace_segmentation"
+    executable: "freespace_node"
+    parameters:
+      - input_pointcloud_topic: "/lidar/points_preprocessed"
+      - ground_coefficients_topic: "/lidar/ground_plane"
+      - output_freespace_topic: "/lidar/freespace"
+      - use_gpu: true
+      - gpu_id: 0
+      - grid_resolution: 0.2  # meters
+      - grid_width: 100  # cells
+      - grid_height: 100  # cells
+      - sensor_height: 1.8  # meters
+      - sensor_pitch: 0.0  # radians
+      - max_obstacle_height: 2.0  # meters
+      - min_obstacle_height: 0.2  # meters
+      - input_qos_history: "keep_last"
+      - input_qos_depth: 10
+      - input_qos_reliability: "reliable"
+      - input_qos_durability: "volatile"
+      - output_qos_history: "keep_last"
+      - output_qos_depth: 10
+      - output_qos_reliability: "reliable"
+      - output_qos_durability: "volatile"
+
+  # GPU-accelerated point cloud registration (for multi-LiDAR)
+  - name: "pointcloud_register"
+    package: "isaac_ros_pointcloud_registration"
+    executable: "registration_node"
+    parameters:
+      - input_topics: ["/lidar/front/points", "/lidar/rear/points"]
+      - output_topic: "/lidar/fused_points"
+      - use_gpu: true
+      - gpu_id: 0
+      - registration_method: "icp"  # Iterative Closest Point
+      - max_iterations: 100
+      - transformation_epsilon: 0.001
+      - input_qos_history: "keep_last"
+      - input_qos_depth: 10
+      - input_qos_reliability: "reliable"
+      - input_qos_durability: "volatile"
+      - output_qos_history: "keep_last"
+      - output_qos_depth: 10
+      - output_qos_reliability: "reliable"
+      - output_qos_durability: "volatile"
+
+gpu_settings:
+  # Global GPU settings for the pipeline
+  default_gpu_id: 0
+  memory_pool_size: "4096MB"
+  cuda_stream_priority: "normal"
+  tensorrt_cache_size: "1024MB"
+  enable_memory_pooling: true
+  enable_unified_memory: false  # Set to true for systems with unified memory support
+
+performance:
+  # Performance optimization settings
+  max_input_queue_size: 10
+  max_output_queue_size: 10
+  enable_pipeline_profiling: false
+  enable_gpu_memory_profiling: false
+  target_frame_rate: 10  # Hz (typical for LiDAR)
+  processing_timeout: 0.2  # seconds
+
+monitoring:
+  # Monitoring and logging settings
+  enable_detailed_logging: false
+  log_level: "INFO"
+  enable_performance_metrics: true
+  metrics_output_file: "/tmp/lidar_pipeline_metrics.json"
+  enable_gpu_monitoring: true
+
+# Hardware-specific configurations
+hardware_configurations:
+  # For 16-beam LiDAR
+  16_beam_lidar:
+    gpu_id: 0
+    memory_pool_size: "2048MB"
+    tensorrt_cache_size: "512MB"
+    target_frame_rate: 10
+    max_cluster_size: 10000
+
+  # For 64-beam LiDAR
+  64_beam_lidar:
+    gpu_id: 0
+    memory_pool_size: "4096MB"
+    tensorrt_cache_size: "1024MB"
+    target_frame_rate: 10
+    max_cluster_size: 25000
+
+  # For 128-beam LiDAR
+  128_beam_lidar:
+    gpu_id: 0
+    memory_pool_size: "8192MB"
+    tensorrt_cache_size: "2048MB"
+    target_frame_rate: 10
+    max_cluster_size: 50000
+
+# LiDAR model-specific configurations
+lidar_models:
+  velodyne_vlp_16:
+    min_range: 0.4
+    max_range: 100.0
+    max_points_per_packet: 424
+    points_per_second: 300000
+
+  velodyne_hdl_32e:
+    min_range: 0.3
+    max_range: 100.0
+    max_points_per_packet: 1344
+    points_per_second: 720000
+
+  ouster_os1_64:
+    min_range: 0.5
+    max_range: 120.0
+    max_points_per_frame: 128000
+    points_per_second: 2560000
+
+  hdl_64e_s2:
+    min_range: 0.2
+    max_range: 120.0
+    max_points_per_packet: 1344
+    points_per_second: 2222222

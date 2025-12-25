@@ -1,0 +1,327 @@
+# Isaac ROS Multi-Sensor Fusion Pipeline Configuration
+# Configuration for GPU-accelerated fusion of camera, LiDAR, and IMU data
+
+pipeline:
+  name: "multi_sensor_fusion_pipeline"
+  description: "GPU-accelerated multi-sensor fusion pipeline for comprehensive environment perception"
+
+nodes:
+  # Camera image subscriber
+  - name: "camera_subscriber"
+    package: "isaac_ros_image_transport"
+    executable: "image_subscriber_node"
+    namespace: "front_camera"
+    parameters:
+      - image_topic: "/front_camera/image_raw"
+      - camera_info_topic: "/front_camera/camera_info"
+      - qos_override: true
+      - qos_history: "keep_last"
+      - qos_depth: 10
+      - qos_reliability: "reliable"
+      - qos_durability: "volatile"
+
+  # LiDAR point cloud subscriber
+  - name: "lidar_subscriber"
+    package: "sensor_msgs_py"
+    executable: "pointcloud2_subscriber"
+    parameters:
+      - input_topic: "/lidar/points"
+      - qos_history: "keep_last"
+      - qos_depth: 10
+      - qos_reliability: "reliable"
+      - qos_durability: "volatile"
+
+  # IMU subscriber
+  - name: "imu_subscriber"
+    package: "sensor_msgs_py"
+    executable: "imu_subscriber"
+    parameters:
+      - input_topic: "/imu/data"
+      - qos_history: "keep_last"
+      - qos_depth: 10
+      - qos_reliability: "reliable"
+      - qos_durability: "volatile"
+
+  # Odometry subscriber (for motion compensation)
+  - name: "odometry_subscriber"
+    package: "nav_msgs_py"
+    executable: "odometry_subscriber"
+    parameters:
+      - input_topic: "/odom"
+      - qos_history: "keep_last"
+      - qos_depth: 10
+      - qos_reliability: "reliable"
+      - qos_durability: "volatile"
+
+  # GPU-accelerated camera preprocessing
+  - name: "camera_preprocessor"
+    package: "isaac_ros_image_proc"
+    executable: "image_preprocessor_node"
+    parameters:
+      - input_image_topic: "/front_camera/image_raw"
+      - output_image_topic: "/front_camera/image_processed"
+      - input_camera_info_topic: "/front_camera/camera_info"
+      - output_camera_info_topic: "/front_camera/image_processed/camera_info"
+      - use_gpu: true
+      - gpu_id: 0
+      - rectification: true
+      - distortion_correction: true
+      - resize_width: 1280
+      - resize_height: 720
+      - input_qos_history: "keep_last"
+      - input_qos_depth: 10
+      - input_qos_reliability: "reliable"
+      - input_qos_durability: "volatile"
+      - output_qos_history: "keep_last"
+      - output_qos_depth: 10
+      - output_qos_reliability: "reliable"
+      - output_qos_durability: "volatile"
+
+  # GPU-accelerated LiDAR preprocessing
+  - name: "lidar_preprocessor"
+    package: "isaac_ros_pointcloud_utils"
+    executable: "pointcloud_preprocessor_node"
+    parameters:
+      - input_topic: "/lidar/points"
+      - output_topic: "/lidar/points_processed"
+      - use_gpu: true
+      - gpu_id: 0
+      - min_range: 0.5  # meters
+      - max_range: 100.0  # meters
+      - min_height: -2.0  # meters
+      - max_height: 5.0  # meters
+      - remove_ground: true
+      - input_qos_history: "keep_last"
+      - input_qos_depth: 10
+      - input_qos_reliability: "reliable"
+      - input_qos_durability: "volatile"
+      - output_qos_history: "keep_last"
+      - output_qos_depth: 10
+      - output_qos_reliability: "reliable"
+      - output_qos_durability: "volatile"
+
+  # GPU-accelerated 2D object detection (camera)
+  - name: "camera_object_detector"
+    package: "isaac_ros_detectnet"
+    executable: "detectnet_node"
+    parameters:
+      - input_image_topic: "/front_camera/image_processed"
+      - output_detections_topic: "/camera/detections_2d"
+      - model_path: "/models/detectnet_model.plan"
+      - class_labels_path: "/models/class_labels.txt"
+      - confidence_threshold: 0.7
+      - input_width: 1280
+      - input_height: 720
+      - use_gpu: true
+      - gpu_id: 0
+      - tensorrt_precision: "fp16"
+      - tensorrt_engine_cache: "/tmp/tensorrt_cache"
+      - enable_profiling: false
+      - input_qos_history: "keep_last"
+      - input_qos_depth: 10
+      - input_qos_reliability: "reliable"
+      - input_qos_durability: "volatile"
+      - output_qos_history: "keep_last"
+      - output_qos_depth: 10
+      - output_qos_reliability: "reliable"
+      - output_qos_durability: "volatile"
+
+  # GPU-accelerated 3D object detection (LiDAR)
+  - name: "lidar_object_detector"
+    package: "isaac_ros_detectnet_3d"
+    executable: "lidar_detectnet_node"
+    parameters:
+      - input_pointcloud_topic: "/lidar/points_processed"
+      - output_detections_topic: "/lidar/detections_3d"
+      - model_path: "/models/lidar_detectnet_model.plan"
+      - class_labels_path: "/models/lidar_class_labels.txt"
+      - use_gpu: true
+      - gpu_id: 0
+      - tensorrt_precision: "fp16"
+      - tensorrt_engine_cache: "/tmp/tensorrt_cache"
+      - enable_profiling: false
+      - min_detection_score: 0.5
+      - max_detections: 100
+      - input_qos_history: "keep_last"
+      - input_qos_depth: 10
+      - input_qos_reliability: "reliable"
+      - input_qos_durability: "volatile"
+      - output_qos_history: "keep_last"
+      - output_qos_depth: 10
+      - output_qos_reliability: "reliable"
+      - output_qos_durability: "volatile"
+
+  # GPU-accelerated sensor fusion
+  - name: "sensor_fusion"
+    package: "isaac_ros_fusion"
+    executable: "fusion_node"
+    parameters:
+      - camera_detections_topic: "/camera/detections_2d"
+      - lidar_detections_topic: "/lidar/detections_3d"
+      - imu_topic: "/imu/data"
+      - odom_topic: "/odom"
+      - output_fused_detections_topic: "/fused/detections"
+      - use_gpu: true
+      - gpu_id: 0
+      - fusion_method: "probabilistic"
+      - max_fusion_distance: 2.0  # meters
+      - temporal_window: 0.1  # seconds
+      - confidence_threshold: 0.6
+      - enable_motion_compensation: true
+      - input_qos_history: "keep_last"
+      - input_qos_depth: 10
+      - input_qos_reliability: "reliable"
+      - input_qos_durability: "volatile"
+      - output_qos_history: "keep_last"
+      - output_qos_depth: 10
+      - output_qos_reliability: "reliable"
+      - output_qos_durability: "volatile"
+
+  # GPU-accelerated tracking
+  - name: "multi_object_tracker"
+    package: "isaac_ros_tracking"
+    executable: "tracking_node"
+    parameters:
+      - input_detections_topic: "/fused/detections"
+      - output_tracks_topic: "/tracks"
+      - use_gpu: true
+      - gpu_id: 0
+      - tracker_type: "kalman_filter"
+      - max_association_distance: 3.0  # meters
+      - max_track_age: 10.0  # seconds
+      - min_track_age: 0.5  # seconds
+      - max_num_tracks: 100
+      - enable_reidentification: true
+      - input_qos_history: "keep_last"
+      - input_qos_depth: 10
+      - input_qos_reliability: "reliable"
+      - input_qos_durability: "volatile"
+      - output_qos_history: "keep_last"
+      - output_qos_depth: 10
+      - output_qos_reliability: "reliable"
+      - output_qos_durability: "volatile"
+
+  # GPU-accelerated semantic segmentation
+  - name: "semantic_segmentation"
+    package: "isaac_ros_segformer"
+    executable: "segformer_node"
+    parameters:
+      - input_image_topic: "/front_camera/image_processed"
+      - output_segmentation_topic: "/camera/segmentation"
+      - model_path: "/models/segformer_model.plan"
+      - class_labels_path: "/models/segformer_labels.txt"
+      - input_width: 640
+      - input_height: 480
+      - use_gpu: true
+      - gpu_id: 0
+      - tensorrt_precision: "fp16"
+      - tensorrt_engine_cache: "/tmp/tensorrt_cache"
+      - enable_profiling: false
+      - input_qos_history: "keep_last"
+      - input_qos_depth: 10
+      - input_qos_reliability: "reliable"
+      - input_qos_durability: "volatile"
+      - output_qos_history: "keep_last"
+      - output_qos_depth: 10
+      - output_qos_reliability: "reliable"
+      - output_qos_durability: "volatile"
+
+  # GPU-accelerated scene understanding
+  - name: "scene_understanding"
+    package: "isaac_ros_scene_understanding"
+    executable: "scene_understanding_node"
+    parameters:
+      - rgb_segmentation_topic: "/camera/segmentation"
+      - lidar_pointcloud_topic: "/lidar/points_processed"
+      - fused_detections_topic: "/fused/detections"
+      - output_scene_graph_topic: "/scene_graph"
+      - use_gpu: true
+      - gpu_id: 0
+      - scene_graph_max_nodes: 500
+      - scene_graph_max_edges: 2000
+      - temporal_consistency: true
+      - input_qos_history: "keep_last"
+      - input_qos_depth: 10
+      - input_qos_reliability: "reliable"
+      - input_qos_durability: "volatile"
+      - output_qos_history: "keep_last"
+      - output_qos_depth: 10
+      - output_qos_reliability: "reliable"
+      - output_qos_durability: "volatile"
+
+gpu_settings:
+  # Global GPU settings for the pipeline
+  default_gpu_id: 0
+  memory_pool_size: "8192MB"
+  cuda_stream_priority: "normal"
+  tensorrt_cache_size: "2048MB"
+  enable_memory_pooling: true
+  enable_unified_memory: false  # Set to true for systems with unified memory support
+
+performance:
+  # Performance optimization settings
+  max_input_queue_size: 10
+  max_output_queue_size: 10
+  enable_pipeline_profiling: false
+  enable_gpu_memory_profiling: false
+  target_frame_rate: 10  # Hz (limited by LiDAR rate)
+  processing_timeout: 0.2  # seconds
+
+monitoring:
+  # Monitoring and logging settings
+  enable_detailed_logging: false
+  log_level: "INFO"
+  enable_performance_metrics: true
+  metrics_output_file: "/tmp/multi_sensor_fusion_metrics.json"
+  enable_gpu_monitoring: true
+
+# Hardware-specific configurations
+hardware_configurations:
+  # Entry-level configuration (Jetson Xavier NX)
+  entry_level:
+    gpu_id: 0
+    memory_pool_size: "2048MB"
+    tensorrt_cache_size: "512MB"
+    target_frame_rate: 5
+    max_num_tracks: 50
+
+  # Mid-range configuration (Jetson AGX Orin)
+  mid_range:
+    gpu_id: 0
+    memory_pool_size: "4096MB"
+    tensorrt_cache_size: "1024MB"
+    target_frame_rate: 10
+    max_num_tracks: 100
+
+  # High-end configuration (Desktop RTX 3080)
+  high_end:
+    gpu_id: 0
+    memory_pool_size: "8192MB"
+    tensorrt_cache_size: "2048MB"
+    target_frame_rate: 20
+    max_num_tracks: 200
+
+# Sensor synchronization settings
+synchronization:
+  camera_lidar_sync:
+    max_time_diff: 0.05  # seconds
+    sync_method: "approximate_time"
+    queue_size: 10
+
+  multi_lidar_sync:
+    max_time_diff: 0.01  # seconds
+    sync_method: "exact_time"
+    queue_size: 5
+
+  imu_camera_sync:
+    max_time_diff: 0.01  # seconds
+    sync_method: "approximate_time"
+    queue_size: 10
+
+# Calibration file paths
+calibration:
+  camera_lidar_extrinsics: "/calibration/camera_lidar_extrinsics.yaml"
+  camera_intrinsics: "/calibration/camera_intrinsics.yaml"
+  lidar_extrinsics: "/calibration/lidar_extrinsics.yaml"
+  imu_extrinsics: "/calibration/imu_extrinsics.yaml"
+  tf_tree: "/calibration/tf_tree.yaml"

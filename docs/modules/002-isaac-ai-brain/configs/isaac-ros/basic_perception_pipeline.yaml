@@ -1,0 +1,47 @@
+# Basic Isaac ROS Perception Pipeline Configuration
+# This template demonstrates a foundational perception pipeline for humanoid robots
+
+perception_pipeline:
+  name: "humanoid_perception_pipeline"
+  description: "Basic perception pipeline for humanoid robot using Isaac ROS"
+
+  input_sensors:
+    - type: "camera"
+      topic: "/humanoid/camera/image_raw"
+      parameters:
+        resolution: [640, 480]
+        frame_rate: 30
+    - type: "lidar"
+      topic: "/humanoid/lidar/scan"
+      parameters:
+        range_min: 0.1
+        range_max: 25.0
+        samples: 360
+    - type: "imu"
+      topic: "/humanoid/imu/data"
+      parameters:
+        rate: 100
+
+  processing_nodes:
+    - name: "object_detection"
+      algorithm: "isaac_ros_detectnet"
+      hardware_acceleration: "cuda"
+      parameters:
+        confidence_threshold: 0.7
+        max_objects: 50
+    - name: "depth_estimation"
+      algorithm: "isaac_ros_stereo"
+      hardware_acceleration: "cuda"
+      parameters:
+        min_depth: 0.1
+        max_depth: 20.0
+
+  output_topics:
+    - name: "detected_objects"
+      type: "vision_msgs/Detection2DArray"
+    - name: "depth_map"
+      type: "sensor_msgs/Image"
+
+  performance_requirements:
+    max_latency: 100  # milliseconds
+    min_throughput: 30  # frames per second

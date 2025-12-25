@@ -1,0 +1,422 @@
+# Isaac ROS VSLAM Configuration
+# Configuration file for Visual SLAM system optimized for humanoid robots
+
+vslam_system:
+  name: "humanoid_vslam_pipeline"
+  description: "GPU-accelerated Visual SLAM pipeline for humanoid robot navigation and mapping"
+  version: "1.0"
+  author: "Isaac ROS Developer"
+  license: "Apache 2.0"
+
+# Global pipeline settings
+global:
+  # Enable profiling for performance monitoring
+  enable_profiling: true
+  # Log level for pipeline nodes
+  log_level: "INFO"
+  # Maximum processing delay allowed (seconds)
+  max_processing_delay: 0.1
+  # Enable detailed performance metrics
+  enable_metrics: true
+
+# Node definitions for the VSLAM pipeline
+nodes:
+  # 1. Camera input and preprocessing
+  - name: "camera_input"
+    package: "isaac_ros_image_transport"
+    executable: "image_subscriber_node"
+    namespace: "front_camera"
+    parameters:
+      # Input topic for raw camera images
+      image_topic: "/front_camera/image_raw"
+      # Camera calibration information
+      camera_info_topic: "/front_camera/camera_info"
+      # Quality of Service settings for real-time performance
+      qos_override: true
+      qos_history: "keep_last"
+      qos_depth: 10
+      qos_reliability: "reliable"
+      qos_durability: "volatile"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Memory pool for camera data
+      memory_pool_size: "512MB"
+
+  # 2. Camera image preprocessing
+  - name: "camera_preprocessing"
+    package: "isaac_ros_image_proc"
+    executable: "image_preprocessor_node"
+    parameters:
+      # Input from camera
+      input_image_topic: "/front_camera/image_raw"
+      input_camera_info_topic: "/front_camera/camera_info"
+      # Output processed image
+      output_image_topic: "/front_camera/image_processed"
+      output_camera_info_topic: "/front_camera/camera_info_processed"
+      # Preprocessing settings
+      undistort_image: true
+      rectify_image: true
+      resize_image: true
+      resized_width: 640
+      resized_height: 480
+      # Hardware acceleration
+      use_gpu: true
+      gpu_id: 0
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 10
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      tensorrt_precision: "fp16"  # Half precision for speed
+      enable_memory_pooling: true
+
+  # 3. Feature detection and extraction
+  - name: "feature_detection"
+    package: "isaac_ros_visual_slam"
+    executable: "feature_detector_node"
+    parameters:
+      # Input from preprocessed camera
+      input_image_topic: "/front_camera/image_processed"
+      # Output features
+      output_features_topic: "/vslam/features"
+      # Feature detection parameters
+      detector_type: "orb"  # Options: orb, sift, akaze, fast
+      max_features: 1000
+      matching_threshold: 0.7
+      # Hardware acceleration
+      use_gpu: true
+      gpu_id: 0
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 10
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for feature detection
+      max_batch_size: 1
+
+  # 4. Visual odometry
+  - name: "visual_odometry"
+    package: "isaac_ros_visual_slam"
+    executable: "visual_odometry_node"
+    parameters:
+      # Input topics
+      image_topic: "/front_camera/image_processed"
+      features_topic: "/vslam/features"
+      # Output pose
+      output_pose_topic: "/vslam/visual_pose"
+      # Odometry parameters
+      max_keyframes: 10
+      min_triangulation_angle: 5.0  # degrees
+      min_feature_parallax: 2.0  # pixels
+      # Hardware acceleration
+      use_gpu: true
+      gpu_id: 0
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 10
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for pose estimation
+      enable_cuda_graphs: true
+
+  # 5. IMU integration for Visual-Inertial Odometry
+  - name: "imu_integration"
+    package: "isaac_ros_visual_slam"
+    executable: "vio_node"
+    parameters:
+      # Input topics
+      visual_pose_topic: "/vslam/visual_pose"
+      imu_topic: "/imu/data"
+      # Output integrated pose
+      output_pose_topic: "/vslam/vio_pose"
+      # VIO parameters
+      enable_imu_fusion: true
+      imu_update_rate: 100.0  # Hz
+      gravity_constant: 9.81
+      # Hardware acceleration
+      use_gpu: true
+      gpu_id: 0
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 20
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 10
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for sensor fusion
+      enable_memory_pooling: true
+
+  # 6. Map building and management
+  - name: "map_builder"
+    package: "isaac_ros_visual_slam"
+    executable: "map_builder_node"
+    parameters:
+      # Input pose from VIO
+      input_pose_topic: "/vslam/vio_pose"
+      # Output map
+      output_map_topic: "/vslam/global_map"
+      # Map parameters
+      map_resolution: 0.05  # meters per cell
+      map_size_x: 100.0  # meters
+      map_size_y: 100.0  # meters
+      map_size_z: 10.0   # meters
+      # Loop closure parameters
+      enable_loop_closure: true
+      loop_closure_threshold: 0.8
+      # Hardware acceleration
+      use_gpu: true
+      gpu_id: 0
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 5
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for map building
+      enable_memory_pooling: true
+
+  # 7. Loop closure detection
+  - name: "loop_closure"
+    package: "isaac_ros_visual_slam"
+    executable: "loop_closure_node"
+    parameters:
+      # Input topics
+      current_features_topic: "/vslam/features"
+      map_features_topic: "/vslam/map_features"
+      # Output loop closure detection
+      output_loop_closure_topic: "/vslam/loop_closure_detected"
+      # Loop closure parameters
+      descriptor_matching_threshold: 0.7
+      geometric_verification_threshold: 5.0  # pixels
+      min_inliers: 10
+      # Hardware acceleration
+      use_gpu: true
+      gpu_id: 0
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 5
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for descriptor matching
+      enable_cuda_graphs: true
+
+  # 8. Global bundle adjustment
+  - name: "bundle_adjustment"
+    package: "isaac_ros_visual_slam"
+    executable: "bundle_adjustment_node"
+    parameters:
+      # Input topics
+      keyframes_topic: "/vslam/keyframes"
+      loop_closure_topic: "/vslam/loop_closure_detected"
+      # Output optimized poses
+      output_optimized_poses_topic: "/vslam/optimized_poses"
+      # Bundle adjustment parameters
+      max_iterations: 100
+      convergence_threshold: 1e-6
+      robust_kernel: "huber"  # Options: huber, cauchy, tukey
+      # Hardware acceleration
+      use_gpu: true
+      gpu_id: 0
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 10
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for optimization algorithms
+      enable_memory_pooling: true
+
+  # 9. Semantic segmentation integration (optional)
+  - name: "semantic_segmentation"
+    package: "isaac_ros_segformer"
+    executable: "segformer_node"
+    parameters:
+      # Input from preprocessed camera
+      input_image_topic: "/front_camera/image_processed"
+      # Output segmentation
+      output_segmentation_topic: "/vslam/semantic_segmentation"
+      # Model configuration
+      model_path: "/models/segformer_planar_encoder.plan"
+      class_labels_path: "/models/coco_labels.txt"
+      input_width: 640
+      input_height: 480
+      # Hardware acceleration
+      use_gpu: true
+      gpu_id: 0
+      tensorrt_precision: "fp16"
+      tensorrt_engine_cache: "/tmp/tensorrt_cache"
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 10
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      tensorrt_precision: "fp16"
+      # Optimize for segmentation
+      max_batch_size: 1
+
+# GPU-specific configuration
+gpu_config:
+  # Default GPU to use
+  default_gpu_id: 0
+  # Memory pool size for GPU operations
+  memory_pool_size: "4096MB"
+  # CUDA stream priority
+  cuda_stream_priority: "normal"
+  # TensorRT cache size for optimized models
+  tensorrt_cache_size: "1024MB"
+  # Enable memory pooling for better performance
+  enable_memory_pooling: true
+  # Enable unified memory (set to false for compatibility)
+  enable_unified_memory: false
+  # Enable CUDA graphs for kernel fusion
+  enable_cuda_graphs: true
+
+# Performance optimization settings
+performance:
+  # Maximum input queue size for each node
+  max_input_queue_size: 10
+  # Maximum output queue size for each node
+  max_output_queue_size: 10
+  # Enable pipeline profiling for performance analysis
+  enable_pipeline_profiling: true
+  # Enable GPU memory profiling
+  enable_gpu_memory_profiling: true
+  # Target frame rate for the pipeline (Hz)
+  target_frame_rate: 30
+  # Processing timeout (seconds)
+  processing_timeout: 0.1
+  # Enable adaptive processing based on computational load
+  enable_adaptive_processing: true
+  # Maximum processing load threshold (0.0 to 1.0)
+  max_load_threshold: 0.8
+
+# Monitoring and diagnostics
+monitoring:
+  # Enable detailed logging
+  enable_detailed_logging: false
+  # Log level
+  log_level: "INFO"
+  # Enable performance metrics collection
+  enable_performance_metrics: true
+  # File to save performance metrics
+  metrics_output_file: "/tmp/vslam_metrics.json"
+  # Enable GPU monitoring
+  enable_gpu_monitoring: true
+  # GPU metrics collection interval (seconds)
+  gpu_monitoring_interval: 1.0
+
+# Hardware-specific configurations
+hardware_profiles:
+  # For Jetson AGX Orin (balanced performance)
+  jetson_agx_orin:
+    gpu_config:
+      default_gpu_id: 0
+      memory_pool_size: "4096MB"
+      tensorrt_cache_size: "1024MB"
+    performance:
+      target_frame_rate: 30
+      max_load_threshold: 0.7
+    nodes:
+      feature_detection:
+        max_features: 500
+      visual_odometry:
+        max_keyframes: 5
+
+  # For desktop RTX 3080 (high performance)
+  desktop_rtx_3080:
+    gpu_config:
+      default_gpu_id: 0
+      memory_pool_size: "8192MB"
+      tensorrt_cache_size: "2048MB"
+    performance:
+      target_frame_rate: 60
+      max_load_threshold: 0.9
+    nodes:
+      feature_detection:
+        max_features: 2000
+      visual_odometry:
+        max_keyframes: 20
+
+# Sensor calibration and transformation settings
+calibration:
+  # Camera intrinsic calibration file
+  camera_intrinsics: "/calibration/front_camera_intrinsics.yaml"
+  # Camera extrinsic calibration (position/orientation relative to robot)
+  camera_extrinsics: "/calibration/camera_to_base.yaml"
+  # IMU extrinsic calibration
+  imu_extrinsics: "/calibration/imu_to_base.yaml"
+  # TF tree configuration
+  tf_tree: "/calibration/vslam_tf_tree.yaml"
+
+# Launch configuration
+launch_config:
+  # Launch container for all VSLAM nodes
+  container_name: "vslam_container"
+  # Use multi-threaded executor
+  executor_type: "multi_threaded"
+  # Number of threads for the executor
+  executor_threads: 4
+  # Composable node container settings
+  container_composable: true
+  # Output destination for container
+  container_output: "screen"
+
+# Example usage commands:
+#
+# 1. Launch the complete VSLAM pipeline:
+#    ros2 launch vslam_pipeline.launch.py
+#
+# 2. Launch with specific hardware profile:
+#    ros2 launch vslam_pipeline.launch.py hardware_profile:=desktop_rtx_3080
+#
+# 3. Monitor GPU usage during operation:
+#    nvidia-smi -l 1
+#
+# 4. Visualize VSLAM outputs:
+#    ros2 run rviz2 rviz2 -d vslam_visualization.rviz

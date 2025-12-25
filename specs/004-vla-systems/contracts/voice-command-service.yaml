@@ -1,0 +1,302 @@
+# Voice Command Service Contract for VLA System
+# Defines the interface for processing voice commands in Vision-Language-Action systems
+
+openapi: 3.0.0
+info:
+  title: VLA Voice Command Service
+  description: Service for processing voice commands and converting them to robot actions
+  version: 1.0.0
+
+paths:
+  /voice/command:
+    post:
+      summary: Process a voice command
+      description: Accepts a voice command and processes it through the VLA pipeline
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                audio_file:
+                  type: string
+                  format: binary
+                  description: Audio file containing the voice command
+                user_context:
+                  type: string
+                  description: Optional context about the user or environment
+                robot_capabilities:
+                  type: array
+                  items:
+                    type: string
+                  description: List of capabilities of the target robot
+                  example: ["navigate", "manipulate", "speak"]
+      responses:
+        '200':
+          description: Successfully processed voice command
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceCommandResponse'
+        '400':
+          description: Invalid request (e.g., poor audio quality)
+        '500':
+          description: Internal server error during processing
+
+  /voice/transcribe:
+    post:
+      summary: Transcribe voice to text
+      description: Convert audio to text using speech recognition
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                audio_file:
+                  type: string
+                  format: binary
+                  description: Audio file to transcribe
+      responses:
+        '200':
+          description: Successfully transcribed audio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TranscriptionResponse'
+        '400':
+          description: Audio file invalid or not understood
+        '500':
+          description: Transcription service error
+
+  /intent/extract:
+    post:
+      summary: Extract intent from text
+      description: Analyze text command and extract structured intent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - command_text
+              properties:
+                command_text:
+                  type: string
+                  description: Text command to analyze
+                user_context:
+                  type: string
+                  description: Context about the user or environment
+                robot_capabilities:
+                  type: array
+                  items:
+                    type: string
+                  description: List of robot capabilities for planning
+      responses:
+        '200':
+          description: Successfully extracted intent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentResponse'
+        '400':
+          description: Command text not understood
+        '500':
+          description: Intent extraction service error
+
+  /plan/generate:
+    post:
+      summary: Generate task plan from intent
+      description: Use LLM to decompose high-level goals into action sequences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - goal_description
+                - robot_capabilities
+              properties:
+                goal_description:
+                  type: string
+                  description: Natural language goal to plan for
+                robot_capabilities:
+                  type: array
+                  items:
+                    type: string
+                  description: List of robot capabilities
+                environmental_context:
+                  type: string
+                  description: Context about the environment
+      responses:
+        '200':
+          description: Successfully generated task plan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskPlanResponse'
+        '400':
+          description: Goal description not understood or impossible
+        '500':
+          description: Planning service error
+
+components:
+  schemas:
+    VoiceCommandResponse:
+      type: object
+      properties:
+        command_id:
+          type: string
+          description: Unique identifier for the command
+        status:
+          type: string
+          enum: [received, processing, completed, failed]
+          description: Current status of command processing
+        transcription:
+          type: string
+          description: Transcribed text from the voice command
+        intent:
+          $ref: '#/components/schemas/Intent'
+        plan:
+          $ref: '#/components/schemas/TaskPlan'
+        confidence:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          description: Overall confidence in the interpretation
+        timestamp:
+          type: string
+          format: date-time
+          description: When the command was processed
+
+    TranscriptionResponse:
+      type: object
+      properties:
+        transcription:
+          type: string
+          description: The transcribed text
+        confidence:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          description: Confidence in the transcription
+        duration:
+          type: number
+          format: float
+          description: Duration of the audio in seconds
+
+    IntentResponse:
+      type: object
+      properties:
+        intent:
+          $ref: '#/components/schemas/Intent'
+        confidence:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          description: Confidence in the intent classification
+
+    TaskPlanResponse:
+      type: object
+      properties:
+        plan:
+          $ref: '#/components/schemas/TaskPlan'
+        confidence:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          description: Confidence in the plan feasibility
+
+    Intent:
+      type: object
+      properties:
+        intent_type:
+          type: string
+          enum: [navigation, manipulation, information, communication, other]
+          description: Type of intent
+        parameters:
+          type: object
+          description: Parameters specific to the intent
+          additionalProperties: true
+        confidence:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          description: Confidence in the intent classification
+
+    TaskPlan:
+      type: object
+      properties:
+        plan_id:
+          type: string
+          description: Unique identifier for the plan
+        goal_description:
+          type: string
+          description: Original goal that was planned
+        subtasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Subtask'
+        estimated_duration:
+          type: number
+          format: float
+          description: Estimated time to complete the plan in seconds
+        required_resources:
+          type: array
+          items:
+            type: string
+          description: Resources required for plan execution
+
+    Subtask:
+      type: object
+      properties:
+        task_id:
+          type: string
+          description: Unique identifier for the subtask
+        action_type:
+          type: string
+          enum: [navigate_to, pick_up, place_object, speak, wait, other]
+          description: Type of action to perform
+        parameters:
+          type: object
+          description: Parameters for the action
+          additionalProperties: true
+        description:
+          type: string
+          description: Human-readable description of the subtask
+        sequence_number:
+          type: integer
+          description: Order in which to execute this subtask
+        preconditions:
+          type: array
+          items:
+            type: string
+          description: Conditions that must be true before execution
+        postconditions:
+          type: array
+          items:
+            type: string
+          description: Expected conditions after execution
+
+    Error:
+      type: object
+      properties:
+        error_code:
+          type: string
+          description: Code identifying the error
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error details
+          additionalProperties: true

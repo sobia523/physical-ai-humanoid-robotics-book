@@ -1,0 +1,466 @@
+# Example Voice Command Pipeline - Speech-to-Intent Mapping
+# This configuration demonstrates a complete pipeline from voice input to robot action intent
+
+## Overview
+# This example shows a complete voice-to-action pipeline that converts spoken commands
+# into structured robot intents. The pipeline includes audio preprocessing, speech
+# recognition, natural language processing, intent classification, and action mapping.
+
+## Pipeline Configuration
+
+### Input Configuration
+```yaml
+input:
+  source: "microphone"
+  device: "default"
+  sample_rate: 16000
+  channels: 1
+  format: "int16"
+  chunk_size: 1024
+  sensitivity: 0.7
+  noise_suppression: true
+  echo_cancellation: true
+```
+
+### Speech Recognition Configuration
+```yaml
+speech_recognition:
+  engine: "whisper"
+  model: "base"
+  language: "en"
+  timeout: 5.0
+  max_alternatives: 1
+  confidence_threshold: 0.5
+  vad_enabled: true
+  vad_aggressiveness: 3
+```
+
+### Natural Language Processing Configuration
+```yaml
+nlp_processing:
+  tokenizer: "whitespace"
+  stop_words: ["the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with", "by"]
+  lemmatization: true
+  part_of_speech_filtering: ["NOUN", "VERB", "ADJ", "ADV"]
+  named_entity_recognition:
+    enabled: true
+    entity_types: ["PERSON", "LOCATION", "OBJECT", "NUMBER"]
+```
+
+### Intent Classification Configuration
+```yaml
+intent_classification:
+  model: "rule_based_with_ml_fallback"
+  confidence_threshold: 0.6
+  fallback_threshold: 0.3
+  intents:
+    # Navigation intents
+    - name: "move_forward"
+      patterns: ["go forward", "move forward", "go straight", "move straight", "forward", "straight"]
+      parameters: {}
+
+    - name: "move_backward"
+      patterns: ["go backward", "move backward", "back", "go back", "move back"]
+      parameters: {}
+
+    - name: "turn_left"
+      patterns: ["turn left", "go left", "left", "turn to the left"]
+      parameters: {}
+
+    - name: "turn_right"
+      patterns: ["turn right", "go right", "right", "turn to the right"]
+      parameters: {}
+
+    - name: "rotate_left"
+      patterns: ["rotate left", "spin left", "turn around left", "turn counter-clockwise"]
+      parameters:
+        angle: "90"
+
+    - name: "rotate_right"
+      patterns: ["rotate right", "spin right", "turn around right", "turn clockwise"]
+      parameters:
+        angle: "90"
+
+    # Manipulation intents
+    - name: "pick_up_object"
+      patterns: ["pick up", "grasp", "grab", "take", "lift", "get"]
+      parameters:
+        object: "OBJECT_ENTITY"
+        location: "LOCATION_ENTITY"
+
+    - name: "place_object"
+      patterns: ["place", "put", "set down", "place down", "put down", "drop", "release"]
+      parameters:
+        object: "OBJECT_ENTITY"
+        location: "LOCATION_ENTITY"
+
+    - name: "move_object"
+      patterns: ["move", "transport", "carry", "transfer"]
+      parameters:
+        object: "OBJECT_ENTITY"
+        source_location: "LOCATION_ENTITY"
+        target_location: "LOCATION_ENTITY"
+
+    # Object interaction intents
+    - name: "open_object"
+      patterns: ["open", "uncover", "unwrap"]
+      parameters:
+        object: "OBJECT_ENTITY"
+
+    - name: "close_object"
+      patterns: ["close", "shut", "cover", "wrap"]
+      parameters:
+        object: "OBJECT_ENTITY"
+
+    - name: "toggle_object"
+      patterns: ["turn on", "turn off", "switch on", "switch off", "toggle"]
+      parameters:
+        object: "OBJECT_ENTITY"
+        state: "STATE_ENTITY"
+
+    # Navigation to location intents
+    - name: "navigate_to_location"
+      patterns: ["go to", "navigate to", "move to", "go", "move", "navigate", "walk to"]
+      parameters:
+        location: "LOCATION_ENTITY"
+
+    - name: "follow_person"
+      patterns: ["follow", "follow me", "come with me", "accompany"]
+      parameters:
+        person: "PERSON_ENTITY"
+
+    # Information intents
+    - name: "find_object"
+      patterns: ["find", "locate", "where is", "search for", "look for"]
+      parameters:
+        object: "OBJECT_ENTITY"
+
+    - name: "describe_scene"
+      patterns: ["describe", "what do you see", "describe the scene", "tell me about"]
+      parameters: {}
+
+    # Social interaction intents
+    - name: "greet_person"
+      patterns: ["hello", "hi", "good morning", "good afternoon", "good evening", "greetings"]
+      parameters:
+        person: "PERSON_ENTITY"
+
+    - name: "respond_to_greeting"
+      patterns: ["how are you", "how do you do", "how are you doing", "what's up"]
+      parameters: {}
+
+    - name: "provide_help"
+      patterns: ["help", "can you help", "assist me", "help me"]
+      parameters:
+        task: "OBJECT_ENTITY"
+
+    - name: "stop_action"
+      patterns: ["stop", "halt", "freeze", "pause", "cease", "abort"]
+      parameters: {}
+
+    - name: "emergency_stop"
+      patterns: ["emergency stop", "stop immediately", "emergency", "danger", "dangerous"]
+      parameters: {}
+```
+
+### Entity Extraction Configuration
+```yaml
+entity_extraction:
+  enabled: true
+  extraction_methods:
+    - "rule_based_patterns"
+    - "named_entity_recognition"
+    - "contextual_analysis"
+
+  entity_patterns:
+    LOCATION_ENTITY:
+      keywords: ["kitchen", "living room", "bedroom", "bathroom", "office", "dining room", "hallway", "garage", "garden", "table", "chair", "couch", "bed", "desk", "shelf", "cupboard", "refrigerator", "microwave", "counter", "door", "window"]
+      spatial: ["left", "right", "front", "back", "center", "middle", "near", "far", "close", "next to", "behind", "in front of", "beside", "on", "under", "above", "below", "inside", "outside"]
+
+    OBJECT_ENTITY:
+      categories: ["furniture", "appliances", "food", "drinks", "tools", "clothing", "electronics", "books", "toys"]
+      examples:
+        furniture: ["chair", "table", "couch", "bed", "desk", "shelf", "cupboard", "dresser"]
+        appliances: ["refrigerator", "microwave", "oven", "dishwasher", "washing machine", "dryer", "toaster", "blender"]
+        food: ["apple", "banana", "bread", "milk", "eggs", "cheese", "meat", "vegetables", "fruits"]
+        drinks: ["water", "juice", "coffee", "tea", "soda", "milk", "beer", "wine"]
+        tools: ["screwdriver", "hammer", "wrench", "pliers", "knife", "spoon", "fork", "plate", "cup"]
+        clothing: ["shirt", "pants", "dress", "jacket", "shoes", "socks", "hat", "gloves"]
+        electronics: ["phone", "tablet", "laptop", "tv", "remote", "charger", "headphones"]
+        books: ["book", "magazine", "newspaper", "notebook", "pencil", "pen", "paper"]
+        toys: ["ball", "doll", "car", "puzzle", "blocks", "teddy bear", "game"]
+
+    PERSON_ENTITY:
+      honorifics: ["Mr.", "Mrs.", "Ms.", "Dr.", "Sir", "Ma'am"]
+      common_names: ["John", "Jane", "Robert", "Mary", "Michael", "Sarah", "David", "Lisa", "James", "Emily", "me", "you", "him", "her", "them"]
+
+    NUMBER_ENTITY:
+      types: ["cardinal", "ordinal"]
+      patterns: ["\\d+", "one", "two", "three", "four", "five", "first", "second", "third", "fourth", "fifth"]
+
+    STATE_ENTITY:
+      on_states: ["on", "enabled", "activated", "started"]
+      off_states: ["off", "disabled", "deactivated", "stopped"]
+```
+
+### Action Mapping Configuration
+```yaml
+action_mapping:
+  # Navigation actions
+  move_forward:
+    ros_action: "move_base"
+    parameters:
+      target_pose:
+        x: 1.0
+        y: 0.0
+        z: 0.0
+        orientation: {x: 0, y: 0, z: 0, w: 1}
+
+  move_backward:
+    ros_action: "move_base"
+    parameters:
+      target_pose:
+        x: -1.0
+        y: 0.0
+        z: 0.0
+        orientation: {x: 0, y: 0, z: 0, w: 1}
+
+  turn_left:
+    ros_action: "rotate_base"
+    parameters:
+      angle: 90
+      direction: "counterclockwise"
+
+  turn_right:
+    ros_action: "rotate_base"
+    parameters:
+      angle: 90
+      direction: "clockwise"
+
+  rotate_left:
+    ros_action: "rotate_base"
+    parameters:
+      angle: 90
+      direction: "counterclockwise"
+
+  rotate_right:
+    ros_action: "rotate_base"
+    parameters:
+      angle: 90
+      direction: "clockwise"
+
+  # Manipulation actions
+  pick_up_object:
+    ros_action: "manipulation_pick"
+    parameters:
+      object_name: "{object}"
+      target_location: "{location}"
+
+  place_object:
+    ros_action: "manipulation_place"
+    parameters:
+      object_name: "{object}"
+      target_location: "{location}"
+
+  move_object:
+    ros_action: "manipulation_transport"
+    parameters:
+      object_name: "{object}"
+      source_location: "{source_location}"
+      target_location: "{target_location}"
+
+  # Object interaction actions
+  open_object:
+    ros_action: "manipulation_open"
+    parameters:
+      object_name: "{object}"
+
+  close_object:
+    ros_action: "manipulation_close"
+    parameters:
+      object_name: "{object}"
+
+  toggle_object:
+    ros_action: "manipulation_toggle"
+    parameters:
+      object_name: "{object}"
+      target_state: "{state}"
+
+  # Navigation actions
+  navigate_to_location:
+    ros_action: "navigation_goto"
+    parameters:
+      target_location: "{location}"
+
+  follow_person:
+    ros_action: "navigation_follow"
+    parameters:
+      target_person: "{person}"
+
+  # Information actions
+  find_object:
+    ros_action: "perception_find"
+    parameters:
+      target_object: "{object}"
+
+  describe_scene:
+    ros_action: "perception_describe"
+    parameters: {}
+
+  # Social interaction actions
+  greet_person:
+    ros_action: "social_greet"
+    parameters:
+      target_person: "{person}"
+
+  respond_to_greeting:
+    ros_action: "social_respond"
+    parameters: {}
+
+  provide_help:
+    ros_action: "social_assist"
+    parameters:
+      target_task: "{task}"
+
+  # Emergency actions
+  stop_action:
+    ros_action: "control_stop"
+    parameters: {}
+
+  emergency_stop:
+    ros_action: "control_emergency_stop"
+    parameters: {}
+```
+
+### Pipeline Processing Stages
+```yaml
+pipeline_stages:
+  stage_1_audio_preprocessing:
+    enabled: true
+    operations:
+      - "noise_reduction"
+      - "echo_cancellation"
+      - "audio_normalization"
+      - "voice_activity_detection"
+
+  stage_2_speech_recognition:
+    enabled: true
+    engine: "whisper"
+    model: "base"
+    language: "en"
+
+  stage_3_natural_language_processing:
+    enabled: true
+    operations:
+      - "tokenization"
+      - "part_of_speech_tagging"
+      - "named_entity_recognition"
+      - "dependency_parsing"
+
+  stage_4_intent_classification:
+    enabled: true
+    method: "rule_based_with_ml_fallback"
+    confidence_threshold: 0.6
+
+  stage_5_action_mapping:
+    enabled: true
+    validation_enabled: true
+    safety_check_enabled: true
+
+  stage_6_action_execution:
+    enabled: true
+    execution_mode: "async"
+    timeout: 30.0
+    retry_attempts: 3
+```
+
+### Safety and Validation Configuration
+```yaml
+safety_validation:
+  enabled: true
+  checks:
+    - "environment_safety_check"
+    - "object_safety_check"
+    - "navigation_safety_check"
+    - "manipulation_safety_check"
+
+  safety_rules:
+    - "prevent_movement_during_charging"
+    - "verify_object_stability_before_manipulation"
+    - "check_navigation_path_for_obstacles"
+    - "validate_manipulation_targets"
+    - "emergency_stop_on_human_collision_risk"
+
+  validation_thresholds:
+    intent_confidence: 0.6
+    entity_confidence: 0.7
+    action_feasibility: 0.8
+```
+
+### Error Handling Configuration
+```yaml
+error_handling:
+  timeout_retry: 3
+  timeout_duration: 5.0
+  fallback_strategies:
+    - "request_clarification"
+    - "use_default_parameters"
+    - "execute_safe_alternative"
+
+  error_responses:
+    recognition_failure: "I couldn't understand your command. Could you please repeat it?"
+    intent_ambiguity: "I'm not sure what you mean. Could you please clarify?"
+    action_failure: "I couldn't complete that action. Is there something else I can help with?"
+    safety_violation: "That action might be unsafe. I cannot proceed with that command."
+```
+
+### Performance Monitoring Configuration
+```yaml
+performance_monitoring:
+  enabled: true
+  metrics:
+    - "recognition_accuracy"
+    - "intent_classification_accuracy"
+    - "action_success_rate"
+    - "response_time"
+    - "resource_utilization"
+
+  logging:
+    enabled: true
+    log_level: "info"
+    performance_log: "voice_pipeline_performance.log"
+```
+
+### Example Voice Command Processing Flow
+```yaml
+example_flow:
+  input_command: "Please go to the kitchen and bring me the red apple from the table"
+  processing_steps:
+    - step: 1
+      description: "Audio preprocessing and noise reduction"
+      output: "Clean audio signal ready for recognition"
+
+    - step: 2
+      description: "Speech recognition with Whisper model"
+      output: "Text: 'Please go to the kitchen and bring me the red apple from the table'"
+
+    - step: 3
+      description: "Natural language processing and tokenization"
+      output: "Tokens: ['Please', 'go', 'to', 'the', 'kitchen', 'and', 'bring', 'me', 'the', 'red', 'apple', 'from', 'the', 'table']"
+
+    - step: 4
+      description: "Named entity recognition"
+      output: "Entities: {LOCATION: 'kitchen', OBJECT: 'red apple', LOCATION: 'table'}"
+
+    - step: 5
+      description: "Intent classification"
+      output: "Intents: ['navigate_to_location', 'pick_up_object']"
+
+    - step: 6
+      description: "Action mapping and parameter extraction"
+      output: "Actions: [{'navigate_to_location': {'location': 'kitchen'}}, {'pick_up_object': {'object': 'red apple', 'location': 'table'}}]"
+
+    - step: 7
+      description: "Action execution in sequence"
+      output: "Robot navigates to kitchen, picks up red apple from table, and returns"
+```

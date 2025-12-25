@@ -1,0 +1,148 @@
+# ROS 2 Performance Optimization Configuration
+# This configuration demonstrates optimization strategies for ROS 2 nodes
+# in digital twin systems to reduce CPU usage and improve real-time performance
+
+# Node-level optimizations
+node_optimization:
+  sensor_processor:
+    # Optimize sensor data processing
+    qos_settings:
+      sensor_data:
+        reliability: "best_effort"  # Use best effort for sensor data
+        durability: "volatile"      # Use volatile durability
+        history: "keep_last"        # Keep only last N messages
+        depth: 5                    # Reduce buffer size from default
+      control_commands:
+        reliability: "reliable"     # Keep reliable for commands
+        durability: "volatile"
+        history: "keep_last"
+        depth: 1                    # Minimal buffer for commands
+
+    # Processing optimizations
+    processing:
+      enable_multithreading: true
+      thread_pool_size: 4
+      message_throttling:
+        enabled: true
+        rate_limit: 10.0  # Limit processing rate in Hz
+      batch_processing:
+        enabled: true
+        batch_size: 10    # Process messages in batches
+
+  navigation_node:
+    # Navigation-specific optimizations
+    qos_settings:
+      path_planning:
+        reliability: "reliable"
+        durability: "volatile"
+        history: "keep_last"
+        depth: 5
+      local_costmap:
+        reliability: "best_effort"
+        durability: "volatile"
+        history: "keep_last"
+        depth: 10
+      global_costmap:
+        reliability: "reliable"
+        durability: "transient_local"
+        history: "keep_last"
+        depth: 1
+
+    # Performance settings
+    planning:
+      global_planner_frequency: 0.5  # Reduce from 1.0Hz
+      local_planner_frequency: 10.0  # Optimize for real-time
+      use_dijkstra: false            # Use faster A* instead of Dijkstra
+      allow_unkown: false            # Don't plan through unknown areas
+
+  localization_node:
+    # Robot localization optimizations
+    ekf_filter:
+      frequency: 50.0              # Processing frequency
+      sensor_timeout: 0.1          # Timeout for sensor data
+      two_d_mode: true             # Use 2D if 3D not needed
+      # Reduce process noise for better performance
+      dynamic_process_noise: false
+      # Optimize covariance calculations
+      publish_tf: true
+      broadcast_tf: false          # Don't broadcast intermediate frames
+
+# Executor optimization
+executor_settings:
+  use_multithreaded_executor: true
+  thread_count: 4                 # Number of threads for executor
+  spin_period: 0.001              # Spin period in seconds
+  max_threads: 8                  # Maximum threads to use
+
+# Communication optimization
+communication_optimization:
+  # Topic-specific optimizations
+  topics:
+    sensor_topics:
+      compression: "none"          # Consider compression for large data
+      throttling:
+        enabled: true
+        rate: 10                   # Throttle sensor data
+    control_topics:
+      compression: "none"          # Keep control data uncompressed
+      priority: "high"             # High priority for control
+    visualization_topics:
+      compression: "png"           # Compress visualization data
+      throttling:
+        enabled: true
+        rate: 5                    # Lower rate for visualization
+
+  # Service optimization
+  services:
+    blocking_calls: false          # Use async service calls
+    timeout: 5.0                   # Service call timeout
+
+# Memory optimization
+memory_management:
+  # Memory pool settings
+  memory_pools:
+    enabled: true
+    size: 1024                     # Size of memory pools
+    pre_allocation: true           # Pre-allocate memory
+    object_pooling:
+      enabled: true
+      max_pool_size: 100           # Max objects in pool
+      message_pooling:
+        enabled: true
+        types: ["sensor_msgs/msg/LaserScan", "sensor_msgs/msg/Image"]
+
+# System-level optimization
+system_optimization:
+  # CPU affinity settings
+  cpu_affinity:
+    enabled: false                 # Enable if needed for real-time
+    core_assignment:
+      sensor_nodes: [0, 1]         # Assign sensor nodes to specific cores
+      control_nodes: [2, 3]        # Assign control nodes to specific cores
+
+  # Process priority
+  process_priority:
+    navigation: "high"             # High priority for navigation
+    localization: "high"           # High priority for localization
+    sensor_processing: "medium"    # Medium priority for sensors
+    visualization: "low"           # Low priority for visualization
+
+# Performance monitoring
+performance_monitoring:
+  # Enable performance monitoring
+  enable_monitoring: true
+  monitoring_interval: 1.0         # Monitor every second
+  metrics:
+    - cpu_usage
+    - memory_usage
+    - message_rates
+    - processing_times
+    - network_usage
+
+  # Performance thresholds
+  thresholds:
+    cpu_warning: 80.0              # Warning at 80% CPU
+    cpu_critical: 90.0             # Critical at 90% CPU
+    memory_warning: 80.0           # Warning at 80% memory
+    memory_critical: 90.0          # Critical at 90% memory
+    message_delay_warning: 0.1     # Warning at 100ms delay

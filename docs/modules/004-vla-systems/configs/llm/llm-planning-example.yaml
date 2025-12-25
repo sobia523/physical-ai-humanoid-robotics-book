@@ -1,0 +1,184 @@
+# Example LLM Cognitive Planning Pipeline
+
+llm_cognitive_planning:
+  # Pipeline configuration for translating natural language goals to action sequences
+  pipeline:
+    # Input processing stage
+    input_processing:
+      # Natural language goal input
+      goal_input:
+        topic: "/natural_language_goal"
+        message_type: "std_msgs/String"
+        qos_profile: "reliable"
+
+      # Context augmentation
+      context_augmentation:
+        # Robot state information
+        robot_state_source: "/robot_state"
+        # Environmental context
+        environment_source: "/environment_context"
+        # Object detection
+        object_detection_source: "/object_detection"
+        # Navigation map
+        map_source: "/map"
+
+    # LLM processing stage
+    llm_processing:
+      # Primary LLM model configuration
+      primary_model:
+        name: "gpt-4-turbo"
+        api_key: "${LLM_API_KEY}"
+        temperature: 0.3
+        max_tokens: 2048
+        timeout: 30
+
+      # Prompt template for goal decomposition
+      prompt_template: |
+        You are a cognitive planning system for a humanoid robot. Decompose the following high-level goal into a sequence of executable ROS 2 actions.
+
+        GOAL: {goal}
+        ROBOT_CAPABILITIES: {robot_capabilities}
+        ENVIRONMENT: {environment_context}
+        CURRENT_STATE: {current_state}
+        OBJECTS: {detected_objects}
+
+        Provide the plan as a structured sequence of actions in the following format:
+        1. [ACTION_NAME] - [PARAMETERS] - [SUCCESS_CRITERIA]
+        2. [ACTION_NAME] - [PARAMETERS] - [SUCCESS_CRITERIA]
+
+        Consider environmental constraints, safety requirements, and robot limitations.
+        Each action should be specific enough to be directly executable by ROS 2 action servers.
+
+      # Validation settings
+      validation:
+        enable_action_validation: true
+        validate_against_robot_capabilities: true
+        safety_check_enabled: true
+        plan_complexity_threshold: 50
+
+    # Action sequence processing
+    action_processing:
+      # Action sequence validation
+      validation:
+        supported_actions: ["navigation_move", "manipulation_grasp", "manipulation_place", "object_detection", "navigation_wait", "perception_scan"]
+        parameter_validation: true
+        safety_validation: true
+
+      # Action sequence optimization
+      optimization:
+        enabled: true
+        # Merge similar actions
+        merge_similar_actions: true
+        # Optimize for efficiency
+        efficiency_optimization: true
+        # Consider execution time
+        time_optimization: true
+
+    # Output processing
+    output_processing:
+      # Action sequence output
+      action_sequence_output:
+        topic: "/cognitive_planning/action_sequence"
+        message_type: "std_msgs/String"
+        qos_profile: "reliable"
+
+      # Status updates
+      status_updates:
+        topic: "/cognitive_planning/status"
+        message_type: "std_msgs/String"
+        qos_profile: "reliable"
+
+      # Error handling
+      error_output:
+        topic: "/cognitive_planning/errors"
+        message_type: "std_msgs/String"
+        qos_profile: "reliable"
+
+  # Integration settings
+  integration:
+    # ROS 2 topics for communication
+    ros_topics:
+      # Input topics
+      input:
+        natural_language_goal: "/natural_language_goal"
+        robot_state: "/robot_state"
+        environment_context: "/environment_context"
+        object_detection: "/object_detection"
+
+      # Output topics
+      output:
+        action_sequence: "/cognitive_planning/action_sequence"
+        status: "/cognitive_planning/status"
+        errors: "/cognitive_planning/errors"
+
+      # Service topics
+      services:
+        get_plan: "/cognitive_planning/get_plan"
+        validate_plan: "/cognitive_planning/validate_plan"
+        cancel_plan: "/cognitive_planning/cancel_plan"
+
+    # Action server integration
+    action_servers:
+      execute_plan: "/cognitive_planning/execute_plan"
+      monitor_execution: "/cognitive_planning/monitor_execution"
+
+  # Safety and constraints
+  safety:
+    # Execution constraints
+    execution_constraints:
+      allowed_actions: ["navigation", "manipulation", "perception", "communication"]
+      forbidden_actions: ["self_modification", "system_shutdown"]
+      maximum_execution_time: 300  # seconds per plan
+      safety_validation_required: true
+
+    # Emergency procedures
+    emergency:
+      emergency_stop_topic: "/emergency_stop"
+      safe_position_topic: "/safe_position"
+      error_recovery_enabled: true
+
+  # Performance settings
+  performance:
+    # Caching settings
+    caching:
+      enabled: true
+      cache_validity: 300  # seconds
+      cache_similar_queries: true
+
+    # Retry settings
+    retry_policy:
+      max_retries: 3
+      retry_delay: 1.0  # seconds
+      exponential_backoff: true
+
+  # Monitoring and logging
+  monitoring:
+    # Logging settings
+    logging:
+      enabled: true
+      log_level: "INFO"
+      sensitive_data_filtering: true
+
+    # Metrics collection
+    metrics:
+      collect_performance_metrics: true
+      collect_success_rate: true
+      collect_planning_time: true
+      metrics_export_interval: 60  # seconds
+
+  # Error handling and recovery
+  error_handling:
+    # Fallback strategies
+    fallback_strategies:
+      - strategy: "simplified_plan"
+        description: "Generate a simpler plan with fewer steps"
+      - strategy: "human_intervention"
+        description: "Request human assistance"
+      - strategy: "abort_and_report"
+        description: "Stop execution and report error"
+
+    # Recovery settings
+    recovery:
+      auto_recovery_enabled: true
+      max_recovery_attempts: 3
+      recovery_delay: 2.0  # seconds

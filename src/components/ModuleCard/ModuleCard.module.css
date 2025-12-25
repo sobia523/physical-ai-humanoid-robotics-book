@@ -1,0 +1,46 @@
+.moduleCard {
+  height: 100%;
+  transition: all var(--ifm-transition-fast) ease;
+  transition-property: border, box-shadow, background-color;
+  cursor: pointer;
+}
+
+.moduleCard:hover {
+  background-color: var(--ifm-card-hover-background);
+  border-color: var(--ifm-color-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.moduleTitle {
+  margin-bottom: var(--ifm-spacing-vertical);
+  color: var(--ifm-font-color-base);
+  font-weight: var(--ifm-heading-font-weight);
+}
+
+.moduleDescription {
+  color: var(--ifm-font-color-secondary);
+  margin-bottom: var(--ifm-spacing-vertical);
+  line-height: var(--ifm-line-height-base);
+}
+
+.moduleButton {
+  width: 100%;
+  text-align: center;
+}
+
+/* Ensure proper spacing and layout */
+.card__header {
+  padding: var(--ifm-card-vertical-spacing) var(--ifm-card-horizontal-spacing);
+  border-bottom: 1px solid var(--ifm-border-color);
+}
+
+.card__body {
+  padding: var(--ifm-card-vertical-spacing) var(--ifm-card-horizontal-spacing);
+  flex: 1;
+}
+
+.card__footer {
+  padding: var(--ifm-card-vertical-spacing) var(--ifm-card-horizontal-spacing);
+  margin-top: auto;
+}

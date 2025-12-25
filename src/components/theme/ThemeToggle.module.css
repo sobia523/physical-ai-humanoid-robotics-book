@@ -1,0 +1,35 @@
+.themeToggle {
+  background: none;
+  border: 1px solid var(--ifm-border-color);
+  border-radius: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--ifm-transition-fast) ease;
+  color: var(--ifm-font-color-base);
+  padding: 0;
+}
+
+.themeToggle:hover {
+  background-color: var(--ifm-background-surface-color);
+  border-color: var(--ifm-color-primary);
+  color: var(--ifm-color-primary);
+}
+
+.icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  pointer-events: none;
+}
+
+/* Ensure proper contrast in both themes */
+[data-theme='light'] .themeToggle {
+  color: var(--ifm-font-color-base);
+}
+
+[data-theme='dark'] .themeToggle {
+  color: var(--ifm-font-color-base);
+}

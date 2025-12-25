@@ -1,0 +1,139 @@
+# LiDAR Sensor Configuration for Humanoid Robotics Simulation
+
+# General sensor properties
+lidar_sensor:
+  name: "humanoid_lidar"
+  type: "ray"
+  update_rate: 10.0  # Hz
+  frame_id: "lidar_link"
+
+  # Ray sensor properties
+  ray:
+    scan:
+      horizontal:
+        samples: 1080        # Number of rays per complete revolution
+        resolution: 1        # Resolution of each sample (usually 1)
+        min_angle: -3.14159  # -π radians (-180 degrees)
+        max_angle: 3.14159   # π radians (180 degrees)
+      vertical:
+        samples: 1           # For 2D LiDAR, this is 1; for 3D LiDAR, this would be > 1
+        resolution: 1
+        min_angle: 0.0       # For 2D LiDAR, this remains 0
+        max_angle: 0.0       # For 2D LiDAR, this remains 0
+    range:
+      min: 0.1               # Minimum detectable range (meters)
+      max: 30.0              # Maximum detectable range (meters)
+      resolution: 0.01       # Range resolution (meters)
+
+  # Noise model for realistic simulation
+  noise:
+    type: "gaussian"
+    mean: 0.0
+    std_dev: 0.01            # Standard deviation of noise (meters)
+
+  # Sensor placement on robot
+  pose:
+    position:
+      x: 0.0                 # Position relative to parent link
+      y: 0.0
+      z: 1.0
+    orientation:
+      roll: 0.0              # Orientation relative to parent link (radians)
+      pitch: 0.0
+      yaw: 0.0
+
+# Alternative 3D LiDAR configuration (HDL-64E like)
+hdl64e_lidar:
+  name: "humanoid_3d_lidar"
+  type: "ray"
+  update_rate: 10.0  # Hz
+  frame_id: "lidar_link"
+
+  # Ray sensor properties
+  ray:
+    scan:
+      horizontal:
+        samples: 1080        # Horizontal samples per revolution
+        resolution: 1
+        min_angle: -3.14159  # -π radians
+        max_angle: 3.14159   # π radians
+      vertical:
+        samples: 64          # Number of vertical beams
+        resolution: 1
+        min_angle: -0.34906  # -20 degrees in radians
+        max_angle: 0.31415   # ~18 degrees in radians
+    range:
+      min: 0.5               # Minimum range (meters)
+      max: 120.0             # Maximum range (meters)
+      resolution: 0.002      # Range resolution (meters)
+
+  # Noise model
+  noise:
+    type: "gaussian"
+    mean: 0.0
+    std_dev: 0.02            # Standard deviation of noise (meters)
+
+  # Sensor placement
+  pose:
+    position:
+      x: 0.0
+      y: 0.0
+      z: 1.2
+    orientation:
+      roll: 0.0
+      pitch: 0.0
+      yaw: 0.0
+
+# VLP-16 LiDAR configuration (Velodyne)
+vlp16_lidar:
+  name: "humanoid_vlp16"
+  type: "ray"
+  update_rate: 10.0  # Hz
+  frame_id: "lidar_link"
+
+  # Ray sensor properties
+  ray:
+    scan:
+      horizontal:
+        samples: 1800        # Higher horizontal resolution
+        resolution: 1
+        min_angle: -3.14159  # -π radians
+        max_angle: 3.14159   # π radians
+      vertical:
+        samples: 16          # 16 vertical beams
+        resolution: 1
+        min_angle: -0.2618   # -15 degrees in radians
+        max_angle: 0.2618    # 15 degrees in radians
+    range:
+      min: 0.2               # Minimum range (meters)
+      max: 100.0             # Maximum range (meters)
+      resolution: 0.004      # Range resolution (meters)
+
+  # Noise model
+  noise:
+    type: "gaussian"
+    mean: 0.0
+    std_dev: 0.015           # Standard deviation of noise (meters)
+
+  # Sensor placement
+  pose:
+    position:
+      x: 0.0
+      y: 0.0
+      z: 1.1
+    orientation:
+      roll: 0.0
+      pitch: 0.0
+      yaw: 0.0
+
+# Sensor plugin configuration for Gazebo
+sensor_plugins:
+  gazebo_ros_lidar:
+    plugin_name: "libgazebo_ros_ray_sensor.so"
+    ros:
+      topics:
+        - name: "/humanoid/lidar/scan"
+          type: "sensor_msgs/LaserScan"
+          update_rate: 10.0
+      frame_id: "lidar_link"
+    output: "sensor_msgs/LaserScan"

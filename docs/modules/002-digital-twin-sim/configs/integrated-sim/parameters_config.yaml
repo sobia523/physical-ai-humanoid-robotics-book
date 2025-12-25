@@ -1,0 +1,161 @@
+# Parameters Configuration for Integrated Simulation
+
+# Navigation Parameters
+navigation:
+  global_planner:
+    NavfnROS:
+      allow_unknown: false
+      default_tolerance: 0.2
+      visualize_potential: false
+      planner_window_x: 0.0
+      planner_window_y: 0.0
+      planner_frequency: 1.0
+
+  local_planner:
+    DWAPlannerROS:
+      # Robot configuration
+      acc_lim_x: 2.5
+      acc_lim_y: 0.0
+      acc_lim_theta: 3.2
+
+      max_vel_x: 0.5
+      min_vel_x: 0.0
+      max_vel_y: 0.0
+      min_vel_y: 0.0
+      max_vel_theta: 1.0
+      min_vel_theta: -1.0
+      min_in_place_vel_theta: 0.5
+
+      # Goal tolerance
+      yaw_goal_tolerance: 0.1
+      xy_goal_tolerance: 0.2
+      latch_xy_goal_tolerance: false
+
+      # Forward simulation
+      sim_time: 1.7
+      sim_granularity: 0.025
+      angular_sim_granularity: 0.025
+      vx_samples: 20
+      vy_samples: 0
+      vtheta_samples: 40
+
+      # Scoring
+      path_distance_bias: 32.0
+      goal_distance_bias: 24.0
+      occdist_scale: 0.02
+      forward_point_distance: 0.325
+      stop_time_buffer: 0.2
+      scaling_speed: 0.25
+      max_scaling_factor: 0.2
+
+      # Oscillation prevention
+      oscillation_reset_dist: 0.05
+
+      # Global plan
+      publish_cost_grid_pc: false
+      use_dwa: true
+
+# Robot Localization Parameters
+robot_localization:
+  ekf_filter_node:
+    ros__parameters:
+      use_sim_time: true
+
+      # Set the frequency of the filter
+      frequency: 50.0
+
+      # Set the sensor timeout
+      sensor_timeout: 0.1
+
+      # Since we're using IMU and odometry data both, we'll set the two_d_mode to false
+      two_d_mode: false
+
+      # Configure the process noise
+      process_noise_covariance: [0.05, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                                0.0,    0.05, 0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                                0.0,    0.0,    0.1,   0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                                0.0,    0.0,    0.0,    0.02, 0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                                0.0,    0.0,    0.0,    0.0,    0.02, 0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                                0.0,    0.0,    0.0,    0.0,    0.0,    0.02, 0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                                0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.1,   0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                                0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.1,   0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                                0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.05, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                                0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.025, 0.0,    0.0,    0.0,    0.0,    0.0,
+                                0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.025, 0.0,    0.0,    0.0,    0.0,
+                                0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.01, 0.0,    0.0,    0.0,
+                                0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.01, 0.0,    0.0,
+                                0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.01, 0.0,
+                                0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.015]
+
+      # Configure the odom0 settings
+      odom0: /humanoid/odom
+      odom0_config: [false, false, false,
+                     false, false, false,
+                     true,  true,  true,
+                     false, false, true,
+                     false, false, false]
+
+      # Configure the imu0 settings
+      imu0: /humanoid/imu/data
+      imu0_config: [false, false, false,
+                    true,  true,  true,
+                    false, false, false,
+                    true,  true,  true,
+                    false, false, false]
+
+# Sensor Processing Parameters
+sensor_processing:
+  pointcloud_settings:
+    max_range: 30.0
+    min_range: 0.1
+    scan_window: 1.57  # 90 degrees
+    cluster_tolerance: 0.5
+    min_cluster_size: 5
+    max_cluster_size: 2000
+
+  image_processing:
+    depth_scale_factor: 0.001
+    depth_min_range: 0.1
+    depth_max_range: 10.0
+    edge_detection_threshold: 0.5
+
+# Control Parameters
+control:
+  pid_controllers:
+    linear_velocity:
+      kp: 1.0
+      ki: 0.0
+      kd: 0.1
+      max_output: 0.5
+      min_output: -0.5
+
+    angular_velocity:
+      kp: 2.0
+      ki: 0.0
+      kd: 0.1
+      max_output: 1.0
+      min_output: -1.0
+
+# Simulation Parameters
+simulation:
+  timing:
+    max_step_size: 0.001
+    real_time_factor: 1.0
+    max_real_time_update_rate: 1000.0
+
+  physics:
+    solver_type: "quick"
+    iters: 10
+    sor: 1.3
+    contact_surface_layer: 0.001
+    contact_max_correcting_vel: 100.0
+
+# Performance Parameters
+performance:
+  cpu_usage_limit: 80.0
+  memory_limit: 2048
+  max_threads: 8
+  queue_size:
+    sensor_data: 10
+    commands: 1
+    transforms: 10

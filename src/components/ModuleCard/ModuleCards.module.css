@@ -1,0 +1,40 @@
+.modulesSection {
+  padding: 4rem 0;
+  background-color: var(--ifm-background-surface-color);
+}
+
+.moduleGridContainer {
+  width: 100%;
+}
+
+.moduleGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  width: 100%;
+}
+
+/* Mobile: 1 column */
+@media (max-width: 768px) {
+  .moduleGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .modulesSection {
+    padding: 2rem 0;
+  }
+}
+
+/* Tablet: 2 columns (769px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .moduleGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Desktop: 2 columns (1025px+) */
+@media (min-width: 1025px) {
+  .moduleGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

@@ -1,0 +1,39 @@
+```mermaid
+graph TB
+    subgraph "Perception"
+        P1[Cameras & Sensors]
+        P2[SLAM & Mapping]
+        P3[Object Detection]
+        P1 --> P2
+        P1 --> P3
+    end
+
+    subgraph "Cognition"
+        C1[Planning Algorithms]
+        C2[Decision Making]
+        C3[Learning Systems]
+    end
+
+    subgraph "Control"
+        Ctrl1[Motion Control]
+        Ctrl2[Trajectory Generation]
+        Ctrl3[Actuator Interface]
+    end
+
+    P2 --> C1
+    P3 --> C1
+    C1 --> Ctrl1
+    Ctrl1 --> Ctrl2
+    Ctrl2 --> Ctrl3
+    Ctrl3 -.-> P1
+
+    subgraph "NVIDIA Isaac Platform"
+        IP1[Isaac Sim]
+        IP2[Isaac ROS]
+        IP3[Nav2]
+    end
+
+    IP1 --> P1
+    IP2 --> P2
+    IP3 --> C1
+```

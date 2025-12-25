@@ -1,0 +1,225 @@
+# Isaac ROS RGB-D Perception Pipeline Configuration
+# Configuration for GPU-accelerated RGB-D sensor processing
+
+pipeline:
+  name: "rgbd_perception_pipeline"
+  description: "GPU-accelerated RGB-D perception pipeline for object detection and 3D scene understanding"
+
+nodes:
+  # RGB camera image subscriber
+  - name: "rgb_image_subscriber"
+    package: "isaac_ros_image_transport"
+    executable: "image_subscriber_node"
+    namespace: "camera"
+    parameters:
+      - image_topic: "/camera/rgb/image_raw"
+      - camera_info_topic: "/camera/rgb/camera_info"
+      - qos_override: true
+      - qos_history: "keep_last"
+      - qos_depth: 10
+      - qos_reliability: "reliable"
+      - qos_durability: "volatile"
+
+  # Depth image subscriber
+  - name: "depth_image_subscriber"
+    package: "isaac_ros_image_transport"
+    executable: "image_subscriber_node"
+    namespace: "camera"
+    parameters:
+      - image_topic: "/camera/depth/image_raw"
+      - camera_info_topic: "/camera/depth/camera_info"
+      - qos_override: true
+      - qos_history: "keep_last"
+      - qos_depth: 10
+      - qos_reliability: "reliable"
+      - qos_durability: "volatile"
+      - image_encoding: "16UC1"  # 16-bit unsigned integer for depth
+
+  # GPU-accelerated depth preprocessing
+  - name: "depth_preprocessor"
+    package: "isaac_ros_depth_preprocessor"
+    executable: "depth_preprocessor_node"
+    parameters:
+      - input_depth_topic: "/camera/depth/image_raw"
+      - output_depth_topic: "/camera/depth/processed"
+      - input_camera_info_topic: "/camera/depth/camera_info"
+      - output_camera_info_topic: "/camera/depth/processed/camera_info"
+      - use_gpu: true
+      - gpu_id: 0
+      - depth_unit_scaling: 0.001  # Convert mm to meters
+      - fill_holes: true
+      - hole_filling_radius: 1
+      - min_depth_threshold: 0.1  # meters
+      - max_depth_threshold: 10.0  # meters
+      - input_qos_history: "keep_last"
+      - input_qos_depth: 10
+      - input_qos_reliability: "reliable"
+      - input_qos_durability: "volatile"
+      - output_qos_history: "keep_last"
+      - output_qos_depth: 10
+      - output_qos_reliability: "reliable"
+      - output_qos_durability: "volatile"
+
+  # GPU-accelerated object detection
+  - name: "object_detector"
+    package: "isaac_ros_detectnet"
+    executable: "detectnet_node"
+    parameters:
+      - input_image_topic: "/camera/rgb/image_raw"
+      - output_detections_topic: "/detections"
+      - model_path: "/models/detectnet_model.plan"
+      - class_labels_path: "/models/class_labels.txt"
+      - confidence_threshold: 0.7
+      - input_width: 1280
+      - input_height: 720
+      - use_gpu: true
+      - gpu_id: 0
+      - tensorrt_precision: "fp16"
+      - tensorrt_engine_cache: "/tmp/tensorrt_cache"
+      - enable_profiling: false
+      - input_qos_history: "keep_last"
+      - input_qos_depth: 10
+      - input_qos_reliability: "reliable"
+      - input_qos_durability: "volatile"
+      - output_qos_history: "keep_last"
+      - output_qos_depth: 10
+      - output_qos_reliability: "reliable"
+      - output_qos_durability: "volatile"
+
+  # GPU-accelerated segmentation
+  - name: "segmentation"
+    package: "isaac_ros_segformer"
+    executable: "segformer_node"
+    parameters:
+      - input_image_topic: "/camera/rgb/image_raw"
+      - output_segmentation_topic: "/segmentation"
+      - model_path: "/models/segformer_model.plan"
+      - class_labels_path: "/models/segformer_labels.txt"
+      - input_width: 640
+      - input_height: 480
+      - use_gpu: true
+      - gpu_id: 0
+      - tensorrt_precision: "fp16"
+      - tensorrt_engine_cache: "/tmp/tensorrt_cache"
+      - enable_profiling: false
+      - input_qos_history: "keep_last"
+      - input_qos_depth: 10
+      - input_qos_reliability: "reliable"
+      - input_qos_durability: "volatile"
+      - output_qos_history: "keep_last"
+      - output_qos_depth: 10
+      - output_qos_reliability: "reliable"
+      - output_qos_durability: "volatile"
+
+  # 3D bounding box estimation
+  - name: "bbox_3d_estimator"
+    package: "isaac_ros_bbox_3d"
+    executable: "bbox_3d_estimator_node"
+    parameters:
+      - rgb_image_topic: "/camera/rgb/image_raw"
+      - depth_image_topic: "/camera/depth/processed"
+      - detections_topic: "/detections"
+      - output_3d_bboxes_topic: "/bbox_3d"
+      - camera_info_topic: "/camera/rgb/camera_info"
+      - use_gpu: true
+      - gpu_id: 0
+      - max_detection_count: 100
+      - depth_unit_scaling: 0.001
+      - input_qos_history: "keep_last"
+      - input_qos_depth: 10
+      - input_qos_reliability: "reliable"
+      - input_qos_durability: "volatile"
+      - output_qos_history: "keep_last"
+      - output_qos_depth: 10
+      - output_qos_reliability: "reliable"
+      - output_qos_durability: "volatile"
+
+  # GPU-accelerated point cloud generation
+  - name: "point_cloud_generator"
+    package: "isaac_ros_point_cloud_generator"
+    executable: "point_cloud_node"
+    parameters:
+      - rgb_image_topic: "/camera/rgb/image_raw"
+      - depth_image_topic: "/camera/depth/processed"
+      - camera_info_topic: "/camera/rgb/camera_info"
+      - output_topic: "/point_cloud"
+      - use_gpu: true
+      - gpu_id: 0
+      - queue_size: 10
+      - output_frame_id: "camera_link"
+      - depth_unit_scaling: 0.001
+      - input_qos_history: "keep_last"
+      - input_qos_depth: 10
+      - input_qos_reliability: "reliable"
+      - input_qos_durability: "volatile"
+      - output_qos_history: "keep_last"
+      - output_qos_depth: 10
+      - output_qos_reliability: "reliable"
+      - output_qos_durability: "volatile"
+
+  # GPU-accelerated plane detection
+  - name: "plane_detector"
+    package: "isaac_ros_plane_segmentation"
+    executable: "plane_segmentation_node"
+    parameters:
+      - input_point_cloud_topic: "/point_cloud"
+      - output_planes_topic: "/planes"
+      - use_gpu: true
+      - gpu_id: 0
+      - max_iterations: 1000
+      - distance_threshold: 0.02  # meters
+      - max_optimization_iterations: 100
+      - input_qos_history: "keep_last"
+      - input_qos_depth: 10
+      - input_qos_reliability: "reliable"
+      - input_qos_durability: "volatile"
+      - output_qos_history: "keep_last"
+      - output_qos_depth: 10
+      - output_qos_reliability: "reliable"
+      - output_qos_durability: "volatile"
+
+gpu_settings:
+  # Global GPU settings for the pipeline
+  default_gpu_id: 0
+  memory_pool_size: "4096MB"
+  cuda_stream_priority: "normal"
+  tensorrt_cache_size: "1024MB"
+  enable_memory_pooling: true
+  enable_unified_memory: false  # Set to true for systems with unified memory support
+
+performance:
+  # Performance optimization settings
+  max_input_queue_size: 10
+  max_output_queue_size: 10
+  enable_pipeline_profiling: false
+  enable_gpu_memory_profiling: false
+  target_frame_rate: 30  # FPS
+  processing_timeout: 0.1  # seconds
+
+monitoring:
+  # Monitoring and logging settings
+  enable_detailed_logging: false
+  log_level: "INFO"
+  enable_performance_metrics: true
+  metrics_output_file: "/tmp/rgbd_pipeline_metrics.json"
+  enable_gpu_monitoring: true
+
+# Hardware-specific configurations
+hardware_configurations:
+  jetson_xavier_nx:
+    gpu_id: 0
+    memory_pool_size: "2048MB"
+    tensorrt_cache_size: "512MB"
+    target_frame_rate: 15  # Lower frame rate for power-constrained device
+
+  jetson_agx_orin:
+    gpu_id: 0
+    memory_pool_size: "4096MB"
+    tensorrt_cache_size: "1024MB"
+    target_frame_rate: 30  # Higher frame rate for more powerful device
+
+  desktop_rtx_3080:
+    gpu_id: 0
+    memory_pool_size: "8192MB"
+    tensorrt_cache_size: "2048MB"
+    target_frame_rate: 60  # Higher frame rate for desktop GPU

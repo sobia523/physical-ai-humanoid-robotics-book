@@ -1,0 +1,212 @@
+# Depth Camera Sensor Configuration for Humanoid Robotics Simulation
+
+# General sensor properties
+depth_camera:
+  name: "humanoid_depth_camera"
+  type: "depth"
+  update_rate: 30.0  # Hz
+  frame_id: "depth_camera_link"
+
+  # Camera properties
+  camera:
+    horizontal_fov: 1.0472    # Horizontal field of view in radians (60 degrees)
+    image:
+      width: 640              # Image width in pixels
+      height: 480             # Image height in pixels
+      format: "R8G8B8"        # Image format
+    clip:
+      near: 0.1               # Near clipping distance (meters)
+      far: 10.0               # Far clipping distance (meters)
+
+  # Depth sensor properties
+  depth:
+    output:
+      - "depth"
+      - "rgb"
+      - "normals"
+      - "points"             # Point cloud output
+
+  # Noise model for realistic simulation
+  noise:
+    type: "gaussian"
+    mean: 0.0
+    std_dev: 0.005            # Standard deviation of depth noise (meters)
+
+  # Sensor placement on robot
+  pose:
+    position:
+      x: 0.05                 # Position relative to parent link (meters)
+      y: 0.0
+      z: 1.15
+    orientation:
+      roll: 0.0               # Orientation relative to parent link (radians)
+      pitch: 0.0
+      yaw: 0.0
+
+# Alternative high-resolution depth camera configuration
+high_res_depth_camera:
+  name: "humanoid_high_res_depth"
+  type: "depth"
+  update_rate: 20.0  # Hz (lower due to higher resolution)
+  frame_id: "depth_camera_link"
+
+  # Camera properties
+  camera:
+    horizontal_fov: 0.7854    # 45 degrees in radians
+    image:
+      width: 1280             # High resolution: 720p
+      height: 720
+      format: "R8G8B8"
+    clip:
+      near: 0.05              # Closer near clipping
+      far: 15.0               # Extended far clipping
+
+  # Depth sensor properties
+  depth:
+    output:
+      - "depth"
+      - "rgb"
+      - "points"
+
+  # Noise model
+  noise:
+    type: "gaussian"
+    mean: 0.0
+    std_dev: 0.003            # Lower noise for high-quality sensor
+
+  # Sensor placement
+  pose:
+    position:
+      x: 0.05
+      y: 0.0
+      z: 1.15
+    orientation:
+      roll: 0.0
+      pitch: 0.0
+      yaw: 0.0
+
+# Intel RealSense D435-like configuration
+realsense_d435_depth_camera:
+  name: "humanoid_realsense_d435"
+  type: "depth"
+  update_rate: 30.0  # Hz
+  frame_id: "depth_camera_link"
+
+  # Camera properties
+  camera:
+    horizontal_fov: 1.5708    # 90 degrees in radians
+    image:
+      width: 1280
+      height: 720
+      format: "R8G8B8"
+    clip:
+      near: 0.2               # Minimum range: 20cm
+      far: 10.0               # Maximum range: 10m
+
+  # Depth sensor properties
+  depth:
+    output:
+      - "depth"
+      - "rgb"
+      - "points"
+      - "ir"                 # Infrared output
+
+  # Noise model with distance-dependent characteristics
+  noise:
+    type: "custom"
+    parameters:
+      baseline: 0.001         # Base noise level
+      slope: 0.0005           # Noise increase per meter of distance
+
+  # Sensor placement
+  pose:
+    position:
+      x: 0.05
+      y: 0.0
+      z: 1.15
+    orientation:
+      roll: 0.0
+      pitch: 0.0
+      yaw: 0.0
+
+# Stereo camera configuration for depth estimation
+stereo_depth_camera:
+  name: "humanoid_stereo_camera"
+  type: "stereo_depth"
+  update_rate: 25.0  # Hz
+  frame_id: "stereo_camera_link"
+
+  # Left camera properties
+  left_camera:
+    horizontal_fov: 0.8727    # ~50 degrees
+    image:
+      width: 640
+      height: 480
+      format: "R8G8B8"
+    clip:
+      near: 0.1
+      far: 12.0
+
+  # Right camera properties (should match left for proper stereo)
+  right_camera:
+    horizontal_fov: 0.8727    # ~50 degrees
+    image:
+      width: 640
+      height: 480
+      format: "R8G8B8"
+    clip:
+      near: 0.1
+      far: 12.0
+
+  # Stereo baseline (distance between cameras)
+  baseline: 0.06              # 6cm between cameras
+
+  # Depth estimation parameters
+  depth_estimation:
+    min_disparity: 1.0
+    max_disparity: 128.0
+    sad_window_size: 9        # Sum of absolute differences window size
+
+  # Noise model
+  noise:
+    type: "gaussian"
+    mean: 0.0
+    std_dev: 0.01             # Depth estimation noise
+
+  # Sensor placement
+  pose:
+    position:
+      x: 0.05
+      y: 0.0
+      z: 1.15
+    orientation:
+      roll: 0.0
+      pitch: 0.0
+      yaw: 0.0
+
+# Sensor plugin configuration for Gazebo
+sensor_plugins:
+  gazebo_ros_depth_camera:
+    plugin_name: "libgazebo_ros_depth_camera.so"
+    ros:
+      topics:
+        depth:
+          name: "/humanoid/depth_camera/depth/image_raw"
+          type: "sensor_msgs/Image"
+        rgb:
+          name: "/humanoid/depth_camera/color/image_raw"
+          type: "sensor_msgs/Image"
+        camera_info:
+          name: "/humanoid/depth_camera/color/camera_info"
+          type: "sensor_msgs/CameraInfo"
+        points:
+          name: "/humanoid/depth_camera/points"
+          type: "sensor_msgs/PointCloud2"
+      frame_id: "depth_camera_link"
+    output: "depth"
+    distortion:
+      k1: 0.0
+      k2: 0.0
+      k3: 0.0
+      p1: 0.0
+      p2: 0.0

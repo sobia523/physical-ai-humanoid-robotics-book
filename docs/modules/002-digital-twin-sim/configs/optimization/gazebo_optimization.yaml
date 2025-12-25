@@ -1,0 +1,82 @@
+# Gazebo Performance Optimization Configuration
+# This configuration demonstrates various optimization strategies for Gazebo simulation
+# to achieve better real-time performance while maintaining simulation quality
+
+world_optimization:
+  # Physics optimization parameters
+  physics:
+    max_step_size: 0.010  # Increase from default 0.001 for better performance
+    real_time_factor: 1.0  # Target real-time simulation
+    max_real_time_update_rate: 1000  # Balance between accuracy and performance
+    solver:
+      type: "quick"  # Use quick solver instead of more accurate but slower ones
+      iters: 10      # Reduce solver iterations from default 20
+      sor: 1.3       # Successive Over-Relaxation parameter
+    constraints:
+      cfm: 0.0       # Constraint Force Mixing
+      erp: 0.2       # Error Reduction Parameter
+      contact_max_correcting_vel: 100.0
+      contact_surface_layer: 0.001
+
+  # Visual optimization parameters
+  rendering:
+    # Use simpler visual geometries compared to collision geometries
+    visual_mesh_resolution: "low"  # Reduce visual complexity
+    texture_compression: true      # Enable texture compression
+    shadows: false                 # Disable shadows for better performance
+    anti_aliasing: 2               # Lower anti-aliasing level
+
+  # Plugin optimization
+  plugins:
+    disable_unused_plugins: true
+    sensor_update_rates:
+      lidar: 5       # Reduce from 10Hz to 5Hz if acceptable
+      camera: 15     # Reduce from 30Hz to 15Hz if acceptable
+      imu: 50        # Keep high for accurate control (minimal impact)
+      gps: 5         # Reduce update rate if precision allows
+
+model_optimization:
+  # Optimization settings for individual models
+  humanoid_robot:
+    # Collision optimization
+    collision_geometries:
+      use_primitive_shapes: true  # Use boxes/spheres instead of meshes
+      simplify_complex_meshes: true
+    # Visual optimization
+    visual_details:
+      reduce_material_complexity: true
+      use_lower_resolution_textures: true
+    # Joint optimization
+    joint_limits:
+      enable_position_limit_spring: false  # Disable expensive spring calculations
+      enable_velocity_limit_damper: false  # Disable expensive damper calculations
+
+environment_optimization:
+  # Environment-specific optimizations
+  static_objects:
+    disable_physics_for_static: true  # Don't simulate static objects
+    use_simple_collision_meshes: true  # Simplified collision for static objects
+  dynamic_objects:
+    # Reduce complexity for objects that move infrequently
+    simplify_when_stationary: true
+    reduce_update_rate_when_idle: true
+
+# Performance monitoring settings
+performance_monitoring:
+  enable_statistics: true
+  log_performance_metrics: true
+  real_time_factor_threshold: 0.8  # Alert if RTF drops below this
+  cpu_usage_threshold: 80.0        # Percentage
+  memory_usage_threshold: 80.0     # Percentage
+
+# Adaptive simulation parameters
+adaptive_simulation:
+  enable_adaptive_step_size: true
+  step_size_range: [0.001, 0.020]  # Min and max step sizes
+  target_real_time_factor: 1.0
+  # Adjust parameters dynamically based on performance
+  performance_adaptation:
+    enabled: true
+    adaptation_interval: 5.0  # seconds
+    # If performance drops, temporarily reduce quality
+    performance_recovery_enabled: true

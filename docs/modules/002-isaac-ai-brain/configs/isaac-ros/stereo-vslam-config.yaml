@@ -1,0 +1,500 @@
+# Isaac ROS Stereo VSLAM Configuration
+# Configuration file for stereo camera-based Visual SLAM system optimized for humanoid robots
+
+vslam_system:
+  name: "humanoid_stereo_vslam_pipeline"
+  description: "GPU-accelerated Stereo Visual SLAM pipeline for humanoid robot navigation and mapping"
+  version: "1.0"
+  author: "Isaac ROS Developer"
+  license: "Apache 2.0"
+
+# Global pipeline settings
+global:
+  # Enable profiling for performance monitoring
+  enable_profiling: true
+  # Log level for pipeline nodes
+  log_level: "INFO"
+  # Maximum processing delay allowed (seconds)
+  max_processing_delay: 0.05
+  # Enable detailed performance metrics
+  enable_metrics: true
+
+# Node definitions for the Stereo VSLAM pipeline
+nodes:
+  # 1. Left camera input and preprocessing
+  - name: "left_camera_input"
+    package: "isaac_ros_image_transport"
+    executable: "image_subscriber_node"
+    namespace: "left_camera"
+    parameters:
+      # Input topic for raw left camera images
+      image_topic: "/stereo_camera/left/image_raw"
+      # Camera calibration information
+      camera_info_topic: "/stereo_camera/left/camera_info"
+      # Quality of Service settings for real-time performance
+      qos_override: true
+      qos_history: "keep_last"
+      qos_depth: 10
+      qos_reliability: "reliable"
+      qos_durability: "volatile"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Memory pool for camera data
+      memory_pool_size: "512MB"
+
+  # 2. Right camera input and preprocessing
+  - name: "right_camera_input"
+    package: "isaac_ros_image_transport"
+    executable: "image_subscriber_node"
+    namespace: "right_camera"
+    parameters:
+      # Input topic for raw right camera images
+      image_topic: "/stereo_camera/right/image_raw"
+      # Camera calibration information
+      camera_info_topic: "/stereo_camera/right/camera_info"
+      # Quality of Service settings for real-time performance
+      qos_override: true
+      qos_history: "keep_last"
+      qos_depth: 10
+      qos_reliability: "reliable"
+      qos_durability: "volatile"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Memory pool for camera data
+      memory_pool_size: "512MB"
+
+  # 3. Stereo camera preprocessing
+  - name: "stereo_preprocessing"
+    package: "isaac_ros_stereo_image_proc"
+    executable: "stereo_preprocessor_node"
+    parameters:
+      # Input from stereo cameras
+      left_image_topic: "/stereo_camera/left/image_raw"
+      right_image_topic: "/stereo_camera/right/image_raw"
+      left_camera_info_topic: "/stereo_camera/left/camera_info"
+      right_camera_info_topic: "/stereo_camera/right/camera_info"
+      # Output processed stereo pair
+      left_rectified_topic: "/stereo_camera/left/image_rect"
+      right_rectified_topic: "/stereo_camera/right/image_rect"
+      # Preprocessing settings
+      undistort_image: true
+      rectify_image: true
+      resize_image: true
+      resized_width: 640
+      resized_height: 480
+      # Hardware acceleration
+      use_gpu: true
+      gpu_id: 0
+      # Stereo-specific parameters
+      stereo_algorithm: "sgbm"  # Options: sgbm, bm
+      num_disparities: 64
+      block_size: 15
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 10
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      tensorrt_precision: "fp16"  # Half precision for speed
+      enable_memory_pooling: true
+
+  # 4. Stereo depth estimation
+  - name: "stereo_depth_estimation"
+    package: "isaac_ros_stereo_image_proc"
+    executable: "disparity_node"
+    parameters:
+      # Input from rectified stereo cameras
+      left_image_topic: "/stereo_camera/left/image_rect"
+      right_image_topic: "/stereo_camera/right/image_rect"
+      # Output disparity map
+      disparity_topic: "/stereo_camera/disparity"
+      # Depth estimation parameters
+      min_disparity: 0
+      max_disparity: 64
+      # Hardware acceleration
+      use_gpu: true
+      gpu_id: 0
+      # Stereo algorithm parameters
+      stereo_algorithm: "sgbm"
+      num_disparities: 64
+      block_size: 15
+      p1_penalty: 8
+      p2_penalty: 32
+      disp12_max_diff: 1
+      prefilter_cap: 63
+      uniqueness_ratio: 15
+      speckle_window_size: 100
+      speckle_range: 32
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 10
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for stereo processing
+      enable_cuda_graphs: true
+
+  # 5. Stereo depth to point cloud
+  - name: "depth_to_pointcloud"
+    package: "isaac_ros_stereo_image_proc"
+    executable: "point_cloud_node"
+    parameters:
+      # Input disparity map
+      disparity_topic: "/stereo_camera/disparity"
+      # Input camera info for projection
+      camera_info_topic: "/stereo_camera/left/camera_info"
+      # Output point cloud
+      point_cloud_topic: "/stereo_camera/point_cloud"
+      # Point cloud parameters
+      queue_size: 10
+      # Hardware acceleration
+      use_gpu: true
+      gpu_id: 0
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 5
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for point cloud generation
+      enable_memory_pooling: true
+
+  # 6. Feature detection and extraction for stereo
+  - name: "stereo_feature_detection"
+    package: "isaac_ros_visual_slam"
+    executable: "stereo_feature_detector_node"
+    parameters:
+      # Input from rectified stereo cameras
+      left_image_topic: "/stereo_camera/left/image_rect"
+      right_image_topic: "/stereo_camera/right/image_rect"
+      # Output features
+      output_features_topic: "/vslam/stereo_features"
+      # Feature detection parameters
+      detector_type: "orb"  # Options: orb, sift, akaze, fast
+      max_features: 2000  # More features with stereo
+      matching_threshold: 0.7
+      # Stereo-specific parameters
+      min_triangulation_angle: 5.0  # degrees
+      max_epipolar_error: 2.0  # pixels
+      # Hardware acceleration
+      use_gpu: true
+      gpu_id: 0
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 10
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for stereo feature detection
+      max_batch_size: 1
+
+  # 7. Stereo visual odometry
+  - name: "stereo_visual_odometry"
+    package: "isaac_ros_visual_slam"
+    executable: "stereo_visual_odometry_node"
+    parameters:
+      # Input topics
+      left_image_topic: "/stereo_camera/left/image_rect"
+      right_image_topic: "/stereo_camera/right/image_rect"
+      features_topic: "/vslam/stereo_features"
+      # Output pose
+      output_pose_topic: "/vslam/stereo_pose"
+      # Stereo VO parameters
+      max_keyframes: 10
+      min_triangulation_angle: 5.0  # degrees
+      min_feature_parallax: 2.0  # pixels
+      # Depth estimation parameters
+      depth_estimation_method: "triangulation"
+      min_depth_threshold: 0.5  # meters
+      max_depth_threshold: 50.0  # meters
+      # Hardware acceleration
+      use_gpu: true
+      gpu_id: 0
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 10
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for stereo pose estimation
+      enable_cuda_graphs: true
+
+  # 8. Stereo IMU integration for Visual-Inertial Odometry
+  - name: "stereo_vio"
+    package: "isaac_ros_visual_slam"
+    executable: "stereo_vio_node"
+    parameters:
+      # Input topics
+      stereo_pose_topic: "/vslam/stereo_pose"
+      imu_topic: "/imu/data"
+      # Output integrated pose
+      output_pose_topic: "/vslam/stereo_vio_pose"
+      # VIO parameters
+      enable_imu_fusion: true
+      imu_update_rate: 100.0  # Hz
+      gravity_constant: 9.81
+      # Stereo-specific VIO parameters
+      max_stereo_features: 2000
+      stereo_feature_matching_threshold: 0.7
+      # Hardware acceleration
+      use_gpu: true
+      gpu_id: 0
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 20
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 10
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for stereo sensor fusion
+      enable_memory_pooling: true
+
+  # 9. Stereo map building and management
+  - name: "stereo_map_builder"
+    package: "isaac_ros_visual_slam"
+    executable: "stereo_map_builder_node"
+    parameters:
+      # Input pose from Stereo VIO
+      input_pose_topic: "/vslam/stereo_vio_pose"
+      # Input point cloud for dense mapping
+      pointcloud_topic: "/stereo_camera/point_cloud"
+      # Output map
+      output_map_topic: "/vslam/stereo_global_map"
+      # Map parameters
+      map_resolution: 0.05  # meters per cell
+      map_size_x: 100.0  # meters
+      map_size_y: 100.0  # meters
+      map_size_z: 10.0   # meters
+      # Loop closure parameters
+      enable_loop_closure: true
+      loop_closure_threshold: 0.8
+      # Stereo-specific parameters
+      enable_dense_mapping: true
+      dense_mapping_resolution: 0.1  # meters
+      # Hardware acceleration
+      use_gpu: true
+      gpu_id: 0
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 5
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for stereo map building
+      enable_memory_pooling: true
+
+  # 10. Stereo loop closure detection
+  - name: "stereo_loop_closure"
+    package: "isaac_ros_visual_slam"
+    executable: "stereo_loop_closure_node"
+    parameters:
+      # Input topics
+      current_features_topic: "/vslam/stereo_features"
+      map_features_topic: "/vslam/stereo_map_features"
+      # Output loop closure detection
+      output_loop_closure_topic: "/vslam/stereo_loop_closure_detected"
+      # Loop closure parameters
+      descriptor_matching_threshold: 0.7
+      geometric_verification_threshold: 5.0  # pixels
+      min_inliers: 10
+      # Stereo-specific parameters
+      stereo_geometric_verification: true
+      stereo_epipolar_constraint: true
+      # Hardware acceleration
+      use_gpu: true
+      gpu_id: 0
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 5
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for stereo descriptor matching
+      enable_cuda_graphs: true
+
+# GPU-specific configuration
+gpu_config:
+  # Default GPU to use
+  default_gpu_id: 0
+  # Memory pool size for GPU operations
+  memory_pool_size: "8192MB"
+  # Stereo processing requires more memory
+  stereo_memory_multiplier: 2.0
+  # CUDA stream priority
+  cuda_stream_priority: "normal"
+  # TensorRT cache size for optimized models
+  tensorrt_cache_size: "2048MB"
+  # Enable memory pooling for better performance
+  enable_memory_pooling: true
+  # Enable unified memory (set to false for compatibility)
+  enable_unified_memory: false
+  # Enable CUDA graphs for kernel fusion
+  enable_cuda_graphs: true
+
+# Performance optimization settings
+performance:
+  # Maximum input queue size for each node
+  max_input_queue_size: 10
+  # Maximum output queue size for each node
+  max_output_queue_size: 10
+  # Enable pipeline profiling for performance analysis
+  enable_pipeline_profiling: true
+  # Enable GPU memory profiling
+  enable_gpu_memory_profiling: true
+  # Target frame rate for the pipeline (Hz)
+  target_frame_rate: 20  # Lower for stereo processing
+  # Processing timeout (seconds)
+  processing_timeout: 0.05
+  # Enable adaptive processing based on computational load
+  enable_adaptive_processing: true
+  # Maximum processing load threshold (0.0 to 1.0)
+  max_load_threshold: 0.8
+  # Stereo-specific performance settings
+  stereo_processing_mode: "synchronized"  # Options: synchronized, asynchronous
+
+# Monitoring and diagnostics
+monitoring:
+  # Enable detailed logging
+  enable_detailed_logging: false
+  # Log level
+  log_level: "INFO"
+  # Enable performance metrics collection
+  enable_performance_metrics: true
+  # File to save performance metrics
+  metrics_output_file: "/tmp/stereo_vslam_metrics.json"
+  # Enable GPU monitoring
+  enable_gpu_monitoring: true
+  # GPU metrics collection interval (seconds)
+  gpu_monitoring_interval: 1.0
+  # Stereo-specific monitoring
+  stereo_synchronization_monitoring: true
+  stereo_disparity_quality_monitoring: true
+
+# Hardware-specific configurations
+hardware_profiles:
+  # For Jetson AGX Orin (balanced performance)
+  jetson_agx_orin:
+    gpu_config:
+      default_gpu_id: 0
+      memory_pool_size: "6144MB"  # Extra memory for stereo
+      tensorrt_cache_size: "1536MB"
+    performance:
+      target_frame_rate: 15
+      max_load_threshold: 0.7
+    nodes:
+      stereo_feature_detection:
+        max_features: 1000
+      stereo_visual_odometry:
+        max_keyframes: 5
+
+  # For desktop RTX 3080 (high performance)
+  desktop_rtx_3080:
+    gpu_config:
+      default_gpu_id: 0
+      memory_pool_size: "12288MB"  # Extra memory for stereo
+      tensorrt_cache_size: "3072MB"
+    performance:
+      target_frame_rate: 30
+      max_load_threshold: 0.9
+    nodes:
+      stereo_feature_detection:
+        max_features: 3000
+      stereo_visual_odometry:
+        max_keyframes: 20
+
+# Sensor calibration and transformation settings
+calibration:
+  # Stereo camera intrinsic calibration files
+  left_camera_intrinsics: "/calibration/stereo_left_intrinsics.yaml"
+  right_camera_intrinsics: "/calibration/stereo_right_intrinsics.yaml"
+  # Stereo extrinsic calibration (baseline and relative pose)
+  stereo_extrinsics: "/calibration/stereo_extrinsics.yaml"
+  # Camera to robot base transformation
+  camera_to_base: "/calibration/stereo_camera_to_base.yaml"
+  # IMU extrinsic calibration
+  imu_extrinsics: "/calibration/imu_to_base.yaml"
+  # TF tree configuration
+  tf_tree: "/calibration/stereo_vslam_tf_tree.yaml"
+
+# Launch configuration
+launch_config:
+  # Launch container for all Stereo VSLAM nodes
+  container_name: "stereo_vslam_container"
+  # Use multi-threaded executor
+  executor_type: "multi_threaded"
+  # Number of threads for the executor
+  executor_threads: 6  # More threads for stereo processing
+  # Composable node container settings
+  container_composable: true
+  # Output destination for container
+  container_output: "screen"
+
+# Synchronization settings
+synchronization:
+  # Stereo camera synchronization
+  stereo_camera_sync:
+    max_time_diff: 0.005  # 5ms tolerance for stereo sync
+    sync_method: "exact_time"
+    queue_size: 10
+  # IMU-camera synchronization
+  imu_camera_sync:
+    max_time_diff: 0.01  # 10ms tolerance
+    sync_method: "approximate_time"
+    queue_size: 20
+
+# Example usage commands:
+#
+# 1. Launch the complete Stereo VSLAM pipeline:
+#    ros2 launch stereo_vslam_pipeline.launch.py
+#
+# 2. Launch with specific hardware profile:
+#    ros2 launch stereo_vslam_pipeline.launch.py hardware_profile:=desktop_rtx_3080
+#
+# 3. Monitor GPU usage during operation:
+#    nvidia-smi -l 1
+#
+# 4. Visualize Stereo VSLAM outputs:
+#    ros2 run rviz2 rviz2 -d stereo_vslam_visualization.rviz

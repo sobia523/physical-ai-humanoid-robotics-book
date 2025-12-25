@@ -1,0 +1,28 @@
+# Bipedal Command Velocity Limits Configuration
+# This file defines velocity limits specifically for bipedal humanoid robots
+# accounting for balance, stability, and step planning constraints
+
+# Linear velocity limits (m/s)
+max_linear_velocity_x: 0.5      # Forward/backward speed limited for stability
+min_linear_velocity_x: -0.3     # Backward speed limited for stability
+max_linear_velocity_y: 0.0      # No lateral movement for bipedal
+min_linear_velocity_y: 0.0      # No lateral movement for bipedal
+
+# Angular velocity limits (rad/s)
+max_angular_velocity_z: 0.4     # Limited for balance during turns
+min_angular_velocity_z: -0.4    # Limited for balance during turns
+
+# Acceleration limits (m/s^2 or rad/s^2)
+max_linear_acceleration_x: 2.5  # Acceleration limited for stability
+max_linear_deceleration_x: -2.5 # Deceleration limited for stability
+max_linear_acceleration_y: 0.0  # No lateral acceleration for bipedal
+max_angular_acceleration_z: 3.2 # Angular acceleration limited for balance
+
+# Jerk limits (rate of change of acceleration)
+max_linear_jerk_x: 5.0          # Limited for smooth motion
+max_angular_jerk_z: 6.4         # Limited for smooth turning
+
+# Additional bipedal-specific constraints
+min_turn_radius: 0.3            # Minimum turning radius for bipedal stability
+step_size: 0.2                  # Typical step size for humanoid locomotion
+max_step_height: 0.1            # Maximum step height over obstacles

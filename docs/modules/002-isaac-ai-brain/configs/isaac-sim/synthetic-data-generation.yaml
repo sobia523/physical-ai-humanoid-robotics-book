@@ -1,0 +1,294 @@
+# Isaac Sim Configuration for Synthetic Data Generation
+# Detailed configuration for creating synthetic datasets for humanoid robotics
+
+app:
+  title: "Humanoid Robot Synthetic Data Generator"
+  window_width: 1920
+  window_height: 1080
+  enable_viewport: true
+  rendering_frequency: 60
+  headless: false
+
+simulation:
+  # Core simulation settings
+  stage_units_in_meters: 1.0
+  physics_dt: 1.0/60.0
+  render_dt: 1.0/60.0
+  stage_up_axis: "Z"
+
+  # Physics engine configuration
+  physics:
+    gpu_sim: true
+    gpu_max_rigid_contact_count: 1024000
+    gpu_max_rigid_patch_count: 102400
+    gpu_max_particles: 1000000
+    gpu_max_spatial_table_size: 1000000
+    gpu_max_aggregate_pairs: 10240
+    gpu_max_soft_body_contacts: 102400
+
+    # Solver settings
+    solver_type: "TGS"
+    bounce_threshold_velocity: 0.5
+    friction_correlation_distance: 0.001
+    gpu_buffer_size: 32768
+
+  # Rendering settings
+  rendering:
+    render_mode: "RaytracedLightMap"
+    enable_lights: true
+    enable_cameras: true
+    enable_meshes: true
+    enable_colliders: false
+    enable_rigid_bodies: true
+    enable_joints: true
+
+robot:
+  # Humanoid robot configuration
+  model_path: "/Isaac/Robots/Humanoid/urdf/humanoid.urdf"
+  position: [0.0, 0.0, 1.0]
+  orientation: [0.0, 0.0, 0.0, 1.0]
+  scale: 1.0
+
+  # Robot sensors for data collection
+  sensors:
+    # RGB camera for visual data
+    rgb_camera:
+      prim_path: "/World/Robot/RGB_Camera"
+      position: [0.0, 0.0, 1.5]
+      rotation: [0.0, 0.0, 0.0]
+      resolution: [1280, 720]
+      fov: 60.0
+      clipping_range: [0.1, 20.0]
+      sensor_tick: 0.033  # 30 FPS
+      is_fisheye: false
+      fisheye_attrs: {}
+      texture_types:
+        rgb: "rgb"
+        depth: "depth"
+        semantic_segmentation: "semantic_segmentation"
+        instance_segmentation: "instance_segmentation"
+        bbox_2d_tight: "bbox_2d_tight"
+        bbox_2d_loose: "bbox_2d_loose"
+        bbox_3d: "bbox_3d"
+        pose: "pose"
+        motion_vector: "motion_vector"
+
+    # Depth camera for 3D data
+    depth_camera:
+      prim_path: "/World/Robot/Depth_Camera"
+      position: [0.0, 0.0, 1.5]
+      rotation: [0.0, 0.0, 0.0]
+      resolution: [640, 480]
+      fov: 60.0
+      clipping_range: [0.1, 10.0]
+      sensor_tick: 0.033
+      enable_fisheye: false
+
+    # Additional sensors for comprehensive data
+    lidar:
+      prim_path: "/World/Robot/Lidar"
+      position: [0.0, 0.0, 1.6]
+      rotation: [0.0, 0.0, 0.0]
+      sensor_tick: 0.1
+      params:
+        rotation_frequency: 10
+        channels: 16
+        points_per_channel: 1000
+        horizontal_fov: 360.0
+        vertical_fov: 30.0
+        max_range: 25.0
+        min_range: 0.5
+        enable_semantic: true
+
+environments:
+  # Multiple environment configurations for diversity
+  - name: "indoor_office"
+    scene_path: "/Isaac/Environments/Simple_Room.usd"
+    objects:
+      - name: "table"
+        model_path: "/Isaac/Props/Simple_Table/table.usd"
+        position: [2.0, 0.0, 0.0]
+        properties:
+          friction: 0.5
+          restitution: 0.1
+          mass: 10.0
+          scale: [1.0, 1.0, 1.0]
+
+      - name: "chair"
+        model_path: "/Isaac/Props/Chair/chair.usd"
+        position: [3.0, 1.0, 0.0]
+        properties:
+          friction: 0.4
+          restitution: 0.05
+          mass: 5.0
+          scale: [1.0, 1.0, 1.0]
+
+  - name: "indoor_corridor"
+    scene_path: "/Isaac/Environments/SmallRoom/SmallRoom.usd"
+    objects:
+      - name: "cabinet"
+        model_path: "/Isaac/Props/Cabinet/cabinet.usd"
+        position: [0.0, 3.0, 0.0]
+        properties:
+          friction: 0.6
+          restitution: 0.05
+          mass: 20.0
+          scale: [1.0, 1.0, 1.0]
+
+lighting:
+  # Multiple lighting configurations for domain randomization
+  lighting_configs:
+    - name: "bright_daylight"
+      key_light:
+        type: "DistantLight"
+        position: [-5.0, -5.0, 5.0]
+        intensity: 800.0
+        color: [1.0, 0.98, 0.9]
+        enabled: true
+      fill_light:
+        type: "DistantLight"
+        position: [3.0, 2.0, 3.0]
+        intensity: 300.0
+        color: [0.9, 0.95, 1.0]
+        enabled: true
+      rim_light:
+        type: "DistantLight"
+        position: [2.0, -3.0, 2.0]
+        intensity: 200.0
+        color: [0.95, 1.0, 0.98]
+        enabled: true
+
+    - name: "warm_indoor"
+      key_light:
+        type: "SphereLight"
+        position: [0.0, 0.0, 3.0]
+        intensity: 500.0
+        color: [1.0, 0.8, 0.6]
+        enabled: true
+      fill_light:
+        type: "SphereLight"
+        position: [2.0, 2.0, 2.5]
+        intensity: 200.0
+        color: [0.9, 0.9, 1.0]
+        enabled: true
+
+domain_randomization:
+  # Domain randomization parameters for robust training
+  enabled: true
+
+  # Lighting randomization
+  lighting:
+    intensity_range: [200, 1000]
+    color_temperature_range: [3000, 7000]  # Kelvin
+    position_jitter: [1.0, 1.0, 1.0]
+    num_lights_range: [1, 4]
+
+  # Material randomization
+  materials:
+    roughness_range: [0.1, 0.9]
+    metallic_range: [0.0, 0.5]
+    albedo_range: [0.1, 1.0]
+    specular_range: [0.0, 1.0]
+    emissive_range: [0.0, 0.1]
+
+  # Object randomization
+  objects:
+    position_jitter: [0.2, 0.2, 0.0]  # No vertical jitter for stability
+    rotation_jitter: [0.0, 0.0, 15.0]  # Only rotate around Z axis
+    scale_variation: [0.8, 1.2, 0.8, 1.2, 0.9, 1.1]  # Min/Max for X, Y, Z
+    texture_randomization: true
+    color_randomization: true
+
+  # Camera randomization
+  camera:
+    position_jitter: [0.05, 0.05, 0.05]
+    rotation_jitter: [2.0, 2.0, 2.0]
+    fov_jitter: 2.0
+    sensor_noise:
+      rgb:
+        mean: 0.0
+        std: 0.01
+      depth:
+        mean: 0.0
+        std: 0.02
+
+data_generation:
+  # Configuration for synthetic dataset generation
+  output_directory: "./synthetic_dataset"
+  num_samples: 10000
+  sample_frequency: 30  # Hz
+  seed: 42  # For reproducibility
+
+  # Data types to generate
+  data_types:
+    - "rgb_images"
+    - "depth_images"
+    - "semantic_segmentation"
+    - "instance_segmentation"
+    - "bounding_boxes_2d_tight"
+    - "bounding_boxes_2d_loose"
+    - "bounding_boxes_3d"
+    - "object_poses"
+    - "point_clouds"
+    - "motion_vectors"
+    - "normals"
+
+  # Annotation configuration
+  annotations:
+    generate_segmentation: true
+    generate_bounding_boxes: true
+    generate_keypoints: false
+    generate_poses: true
+    generate_material_properties: false
+    generate_lighting_properties: false
+
+  # File format configuration
+  formats:
+    images: "png"
+    annotations: "json"
+    point_clouds: "pcd"
+    meshes: "usd"
+
+  # Dataset structure
+  dataset_structure:
+    train_split: 0.8
+    validation_split: 0.1
+    test_split: 0.1
+    random_split: true
+
+performance:
+  # Performance optimization settings
+  max_gpu_memory: "auto"
+  enable_multi_gpu: false
+  batch_size: 1
+  num_workers: 4
+  enable_caching: true
+  cache_directory: "./cache"
+
+  # Simulation optimization
+  enable_scene_culling: true
+  enable_texture_compression: true
+  enable_mesh_simplification: false
+
+validation:
+  # Validation settings for synthetic data quality
+  validate_realism:
+    rgb_quality_threshold: 0.7
+    depth_accuracy_threshold: 0.95
+    segmentation_iou_threshold: 0.9
+    object_detection_ap_threshold: 0.8
+
+  # Validation metrics
+  metrics:
+    - "perceptual_similarity"
+    - "feature_distribution_distance"
+    - "domain_classifier_accuracy"
+    - "fid_score"
+
+logging:
+  # Logging configuration
+  log_level: "INFO"
+  log_directory: "./logs"
+  enable_tensorboard: true
+  tensorboard_directory: "./tensorboard_logs"
+  save_frequency: 100  # Save logs every 100 samples

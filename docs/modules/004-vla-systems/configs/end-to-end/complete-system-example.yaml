@@ -1,0 +1,373 @@
+# Example Complete VLA System Pipeline
+
+complete_vla_system:
+  # Complete end-to-end VLA system configuration
+  system:
+    name: "autonomous_humanoid_demo"
+    version: "1.0.0"
+    description: "Complete VLA system for autonomous humanoid operation"
+
+  # Voice-to-Action Pipeline Configuration
+  voice_to_action_pipeline:
+    # Audio input configuration
+    audio_input:
+      device: "default"
+      sample_rate: 16000
+      channels: 1
+      buffer_size: 1024
+
+    # Whisper ASR configuration
+    whisper_asr:
+      model: "base"
+      device: "cuda"
+      language: "en"
+      task: "transcribe"
+      use_float16: true
+
+    # Intent classification configuration
+    intent_classifier:
+      confidence_threshold: 0.7
+      intent_mapping:
+        "navigation_move_forward": "navigation.move_to_pose"
+        "navigation_turn_left": "navigation.rotate"
+        "manipulation_pick_object": "manipulation.grasp"
+        "perception_find_object": "perception.detect"
+        "stop_command": "control.emergency_stop"
+
+    # Voice activity detection
+    voice_activity_detection:
+      enabled: true
+      threshold: 500
+      silence_duration: 1.0
+
+  # Cognitive Planning Pipeline
+  cognitive_planning_pipeline:
+    # LLM configuration
+    llm_planning:
+      model: "gpt-4-turbo"
+      api_key: "${LLM_API_KEY}"
+      temperature: 0.3
+      max_tokens: 2048
+      timeout: 30
+
+    # Planning context
+    planning_context:
+      robot_capabilities:
+        - "navigation"
+        - "manipulation"
+        - "perception"
+        - "communication"
+      environment_constraints:
+        - "indoor"
+        - "office"
+        - "household"
+
+    # Plan validation
+    plan_validation:
+      enabled: true
+      safety_validation: true
+      feasibility_check: true
+      action_sequence_validation: true
+
+  # Vision-Language Integration Pipeline
+  vision_language_pipeline:
+    # Camera configuration
+    camera:
+      topic: "/camera/rgb/image_raw"
+      frame_rate: 10
+      resolution: [640, 480]
+
+    # Object detection
+    object_detection:
+      model: "yolov8x-seg.pt"
+      confidence_threshold: 0.5
+      max_detections: 100
+
+    # Scene understanding
+    scene_understanding:
+      scene_graph_generation: true
+      relationship_detection: true
+      spatial_reasoning: true
+
+    # Language grounding
+    language_grounding:
+      model: "clip"
+      similarity_threshold: 0.3
+      top_k_grounding: 5
+
+    # Uncertainty management
+    uncertainty_management:
+      detection_uncertainty_threshold: 0.8
+      grounding_uncertainty_threshold: 0.7
+
+  # Action Execution Pipeline
+  action_execution_pipeline:
+    # Navigation actions
+    navigation:
+      action_server: "/navigate_to_pose"
+      max_velocity: 0.5
+      safety_margin: 0.5
+      obstacle_avoidance: true
+
+    # Manipulation actions
+    manipulation:
+      action_server: "/manipulation_controller/follow_joint_trajectory"
+      grasp_force_limit: 50.0
+      position_tolerance: 0.01
+
+    # Perception actions
+    perception:
+      action_server: "/perception_server"
+      detection_timeout: 3.0
+      confidence_threshold: 0.7
+
+    # Execution monitoring
+    execution_monitoring:
+      action_timeout: 30.0
+      verification_enabled: true
+      progress_tracking: true
+
+  # ROS 2 Integration
+  ros_integration:
+    # Topic configuration
+    topics:
+      # Voice input/output
+      voice_command_input: "/voice_command"
+      speech_text_output: "/speech_text"
+      intent_output: "/voice_intent"
+      robot_command_input: "/robot_command"
+
+      # Vision input/output
+      image_input: "/camera/rgb/image_raw"
+      depth_input: "/camera/depth/image_raw"
+      grounded_objects_output: "/vision_language/grounded_objects"
+      scene_graph_output: "/vision_language/scene_graph"
+
+      # Planning output
+      action_sequence_output: "/action_sequence"
+      plan_status_output: "/plan_status"
+
+      # Action execution
+      navigation_goal: "/navigate_to_pose/goal"
+      manipulation_goal: "/manipulation/goal"
+      perception_goal: "/perception/goal"
+
+      # System status
+      system_status: "/system_status"
+      error_output: "/system_errors"
+
+    # Service configuration
+    services:
+      # Control services
+      start_system: "/start_vla_system"
+      stop_system: "/stop_vla_system"
+      reset_system: "/reset_vla_system"
+
+      # Query services
+      get_system_status: "/get_system_status"
+      get_robot_state: "/get_robot_state"
+      get_environment_state: "/get_environment_state"
+
+    # Action server configuration
+    action_servers:
+      execute_plan: "/execute_plan"
+      continuous_perception: "/continuous_perception"
+      human_interaction: "/human_interaction"
+
+  # System Orchestration
+  system_orchestration:
+    # Pipeline stages
+    pipeline_stages:
+      - name: "voice_processing"
+        enabled: true
+        timeout: 5.0
+        error_recovery: "request_repitition"
+      - name: "context_integration"
+        enabled: true
+        timeout: 2.0
+        error_recovery: "use_default_context"
+      - name: "plan_generation"
+        enabled: true
+        timeout: 10.0
+        error_recovery: "simplified_planning"
+      - name: "action_execution"
+        enabled: true
+        timeout: 60.0
+        error_recovery: "safe_stop"
+
+    # Coordination patterns
+    coordination_patterns:
+      synchronous_processing: false
+      message_synchronization: true
+      state_consistency: true
+      conflict_resolution: true
+
+    # Data flow management
+    data_flow:
+      buffer_size: 10
+      flow_validation: true
+      message_sequencing: true
+
+  # Safety and Validation
+  safety_validation:
+    # System safety
+    system_safety:
+      emergency_stop_enabled: true
+      safety_zones_defined: true
+      collision_avoidance_mandatory: true
+      human_safety_priority: 1
+
+    # Operational constraints
+    operational_constraints:
+      maximum_operation_time: 3600  # 1 hour
+      battery_level_threshold: 0.2
+      computational_load_limit: 0.8
+      temperature_threshold: 65.0
+
+    # Action safety
+    action_safety:
+      allowed_action_types: ["navigation", "manipulation", "perception", "communication"]
+      forbidden_actions: ["self_modification", "system_shutdown", "unsafe_manipulation"]
+      action_validation_required: true
+
+    # Emergency procedures
+    emergency_procedures:
+      emergency_stop_topic: "/emergency_stop"
+      safe_position_topic: "/safe_position"
+      error_recovery_enabled: true
+      human_intervention_required: true
+
+  # Performance Optimization
+  performance_optimization:
+    # Caching configuration
+    caching:
+      enabled: true
+      object_cache_size: 1000
+      scene_graph_cache_size: 100
+      embedding_cache_size: 500
+      plan_cache_size: 50
+      cache_ttl: 300
+
+    # Resource management
+    resource_management:
+      memory_limit: "4GB"
+      cpu_limit: 0.8
+      gpu_memory_fraction: 0.8
+
+    # Processing optimization
+    processing:
+      batch_size: 1
+      max_batch_time: 0.1
+      parallel_processing: true
+      thread_count: 4
+
+  # Error Handling and Recovery
+  error_handling_recovery:
+    # Error detection
+    error_detection:
+      timeout_detection: true
+      failure_detection: true
+      anomaly_detection: true
+      performance_degradation_detection: true
+
+    # Recovery strategies
+    recovery_strategies:
+      - strategy: "retry_with_backoff"
+        applicable_errors: ["timeout", "network_error"]
+        max_retries: 3
+        base_delay: 1.0
+      - strategy: "fallback_to_simpler_action"
+        applicable_errors: ["execution_failure"]
+        description: "Use a simpler version of the action"
+      - strategy: "request_human_assistance"
+        applicable_errors: ["multiple_failures", "unknown_error"]
+        description: "Ask for human help"
+      - strategy: "safe_stop_and_report"
+        applicable_errors: ["safety_violation", "critical_error"]
+        description: "Stop execution and report error"
+
+    # Error reporting
+    error_reporting:
+      report_to_monitoring: true
+      notify_operator: true
+      log_error_details: true
+      automatic_error_classification: true
+
+  # Example Usage Scenarios
+  usage_scenarios:
+    # Scenario 1: Fetch object
+    fetch_object:
+      voice_command: "Please bring me the red cup from the kitchen table"
+      expected_pipeline_flow:
+        - "voice_to_action_pipeline"
+        - "vision_language_pipeline"  # To locate cup
+        - "cognitive_planning_pipeline"  # To plan path and grasp
+        - "action_execution_pipeline"  # To execute navigation and manipulation
+      expected_output: "Robot navigates to kitchen, grasps red cup, and brings it to user"
+
+    # Scenario 2: Navigate to location
+    navigate_to_location:
+      voice_command: "Go to the living room and wait there"
+      expected_pipeline_flow:
+        - "voice_to_action_pipeline"
+        - "cognitive_planning_pipeline"  # To plan navigation
+        - "action_execution_pipeline"  # To execute navigation
+      expected_output: "Robot navigates to living room and waits"
+
+    # Scenario 3: Find and identify object
+    find_and_identify:
+      voice_command: "What objects do you see on the desk?"
+      expected_pipeline_flow:
+        - "voice_to_action_pipeline"
+        - "vision_language_pipeline"  # To detect and identify objects
+        - "action_execution_pipeline"  # To report findings
+      expected_output: "Robot identifies and reports objects on the desk"
+
+  # Monitoring and Logging
+  monitoring_logging:
+    # Logging configuration
+    logging:
+      enabled: true
+      log_level: "INFO"
+      log_file_path: "/logs/vla_system.log"
+      sensitive_data_filtering: true
+      log_rotation: true
+      max_log_size: "100MB"
+      backup_count: 5
+
+    # Metrics collection
+    metrics:
+      collect_performance_metrics: true
+      collect_accuracy_metrics: true
+      collect_safety_metrics: true
+      collect_failure_rates: true
+      metrics_export_interval: 60
+      metrics_export_path: "/metrics/vla_system_metrics.json"
+
+    # Health monitoring
+    health_monitoring:
+      cpu_usage_monitoring: true
+      memory_usage_monitoring: true
+      temperature_monitoring: true
+      battery_monitoring: true
+      network_status_monitoring: true
+
+  # Configuration Validation
+  configuration_validation:
+    # Schema validation
+    schema_validation:
+      enabled: true
+      strict_mode: true
+      validation_on_load: true
+
+    # Parameter validation
+    parameter_validation:
+      range_validation: true
+      type_validation: true
+      dependency_validation: true
+
+    # Integration validation
+    integration_validation:
+      topic_availability: true
+      service_availability: true
+      action_server_availability: true

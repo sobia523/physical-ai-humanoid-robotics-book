@@ -1,0 +1,118 @@
+# Simulation Environment Configuration Schema
+
+This document defines the schema for simulation environment configurations based on the data model defined in the research.
+
+## Physics Environment Configuration
+
+```yaml
+physics_environment:
+  gravity_vector: [0, 0, -9.8]  # 3D gravity vector [x, y, z] in m/s²
+  physics_engine: "ode"         # Physics engine type (ode, bullet, dart)
+  update_rate: 1000.0           # Physics update rate in Hz
+  real_time_factor: 1.0        # Real-time update rate multiplier
+  erp: 0.2                     # Error Reduction Parameter
+  cfm: 1.0e-5                  # Constraint Force Mixing
+  max_contacts: 20             # Maximum contacts per collision
+```
+
+## Rendering Scene Configuration
+
+```yaml
+rendering_scene:
+  render_pipeline: "hdrp"       # Rendering pipeline type (hdrp, urp, builtin)
+  lighting_mode: "global_illumination"  # Lighting configuration
+  anti_aliasing: "taa"          # Anti-aliasing method (taa, fxaa)
+  resolution_width: 1920        # Rendering width in pixels
+  resolution_height: 1080       # Rendering height in pixels
+  frame_rate: 60                # Target frame rate
+  lod_bias: 1.0                 # Level of Detail bias multiplier
+```
+
+## Robot Model Configuration
+
+```yaml
+robot_model:
+  model_name: "simple_humanoid_robot"  # Unique identifier for the robot model
+  urdf_path: "configs/simple_robot.urdf"  # Path to URDF file
+  joint_count: 16               # Number of joints in the robot
+  link_count: 15                # Number of links in the robot
+  mass: 15.1                    # Total mass of the robot in kg
+  base_frame: "base_link"       # Base frame ID for the robot
+```
+
+## Sensor Configuration
+
+### Base Sensor Model
+```yaml
+sensor_model:
+  sensor_type: "lidar"          # Type of sensor (lidar, depth_camera, imu)
+  sensor_name: "front_lidar"    # Unique identifier for the sensor
+  topic_name: "/sensor/lidar_scan"  # ROS 2 topic name for sensor data
+  position: [0, 0, 0]          # 3D position [x, y, z] relative to robot
+  orientation: [0, 0, 0]       # 3D orientation [roll, pitch, yaw] in radians
+  noise_model: "gaussian"      # Type of noise model
+  noise_variance: 0.01         # Noise variance parameter
+```
+
+### LiDAR Sensor Configuration
+```yaml
+lidar_sensor:
+  sensor_type: "lidar"
+  sensor_name: "front_lidar"
+  topic_name: "/sensor/lidar_scan"
+  position: [0.0, 0.0, 0.3]
+  orientation: [0, 0, 0]
+  range_min: 0.1               # Minimum detection range in meters
+  range_max: 30.0              # Maximum detection range in meters
+  ray_count: 720               # Number of laser rays
+  field_of_view: 6.28319       # Field of view in radians (360°)
+  noise_model: "gaussian"
+  noise_variance: 0.001
+```
+
+### Depth Camera Sensor Configuration
+```yaml
+depth_camera_sensor:
+  sensor_type: "depth_camera"
+  sensor_name: "front_camera"
+  topic_name: "/sensor/depth_camera"
+  position: [0.1, 0.0, 0.2]
+  orientation: [0, 0, 0]
+  resolution_width: 640        # Image width in pixels
+  resolution_height: 480       # Image height in pixels
+  field_of_view: 60.0          # Camera field of view in degrees
+  depth_format: "float32"      # Depth data format
+  noise_model: "gaussian"
+  noise_variance: 0.01
+```
+
+### IMU Sensor Configuration
+```yaml
+imu_sensor:
+  sensor_type: "imu"
+  sensor_name: "imu_body"
+  topic_name: "/sensor/imu/data"
+  position: [0.0, 0.0, 0.1]
+  orientation: [0, 0, 0]
+  accel_range: 16.0            # Accelerometer range in g
+  gyro_range: 2000.0           # Gyroscope range in °/s
+  mag_range: 4800.0            # Magnetometer range in µT
+  noise_model: "gaussian"
+  noise_variance: 0.001
+```
+
+## Complete Simulation Configuration
+
+```yaml
+simulation_configuration:
+  simulation_name: "digital_twin_demo"  # Name of the simulation
+  physics_environment: *physics_environment_ref  # Physics environment settings
+  rendering_scene: *rendering_scene_ref  # Rendering scene settings
+  robot_model: *robot_model_ref           # Robot model to simulate
+  sensors:                               # Array of SensorModel instances
+    - *lidar_sensor_ref
+    - *depth_camera_sensor_ref
+    - *imu_sensor_ref
+  start_time: 0.0              # Simulation start time in seconds
+  duration: 0.0                # Simulation duration in seconds (0.0 for indefinite)
+```

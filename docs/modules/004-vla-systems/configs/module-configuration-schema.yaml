@@ -1,0 +1,377 @@
+# VLA Module Configuration Schema
+# Schema definition for Vision-Language-Action system configurations
+
+$schema: http://json-schema.org/draft-07/schema#
+title: VLA System Configuration Schema
+description: Configuration schema for Vision-Language-Action systems
+type: object
+
+properties:
+  vla_system:
+    type: object
+    description: Main VLA system configuration
+    properties:
+      system_id:
+        type: string
+        description: Unique identifier for the VLA system instance
+        default: "vla-system-001"
+
+      version:
+        type: string
+        description: Version of the VLA system
+        default: "1.0.0"
+
+      speech_recognition:
+        type: object
+        description: Speech recognition configuration
+        properties:
+          enabled:
+            type: boolean
+            description: Whether speech recognition is enabled
+            default: true
+
+          model:
+            type: string
+            description: Speech recognition model to use
+            enum: ["whisper-tiny", "whisper-base", "whisper-small", "whisper-medium", "whisper-large"]
+            default: "whisper-base"
+
+          language:
+            type: string
+            description: Language for speech recognition
+            default: "en-US"
+
+          timeout:
+            type: number
+            description: Timeout for speech recognition in seconds
+            minimum: 1.0
+            maximum: 10.0
+            default: 5.0
+
+          phrase_time_limit:
+            type: number
+            description: Maximum time for phrase recognition in seconds
+            minimum: 1.0
+            maximum: 30.0
+            default: 10.0
+
+          noise_suppression:
+            type: boolean
+            description: Enable noise suppression
+            default: true
+
+          sensitivity:
+            type: number
+            description: Sensitivity for voice detection
+            minimum: 0.0
+            maximum: 1.0
+            default: 0.5
+
+        required:
+          - enabled
+          - model
+          - language
+          - timeout
+
+        additionalProperties: false
+
+      llm_integration:
+        type: object
+        description: Large Language Model integration configuration
+        properties:
+          enabled:
+            type: boolean
+            description: Whether LLM integration is enabled
+            default: true
+
+          provider:
+            type: string
+            description: LLM provider
+            enum: ["openai", "anthropic", "huggingface", "custom"]
+            default: "openai"
+
+          model:
+            type: string
+            description: LLM model to use
+            default: "gpt-3.5-turbo"
+
+          temperature:
+            type: number
+            description: Temperature setting for LLM generation
+            minimum: 0.0
+            maximum: 1.0
+            default: 0.3
+
+          max_tokens:
+            type: integer
+            description: Maximum tokens for LLM responses
+            minimum: 100
+            maximum: 4096
+            default: 500
+
+          api_base:
+            type: string
+            description: Base URL for LLM API
+            format: uri
+            default: "https://api.openai.com/v1"
+
+          api_key:
+            type: string
+            description: API key for LLM access (should be stored securely)
+
+          request_timeout:
+            type: number
+            description: Timeout for LLM requests in seconds
+            minimum: 1.0
+            maximum: 60.0
+            default: 30.0
+
+          max_retries:
+            type: integer
+            description: Maximum retries for LLM requests
+            minimum: 1
+            maximum: 10
+            default: 3
+
+        required:
+          - enabled
+          - provider
+          - model
+          - api_key
+
+        additionalProperties: false
+
+      vision_language:
+        type: object
+        description: Vision-language integration configuration
+        properties:
+          enabled:
+            type: boolean
+            description: Whether vision-language integration is enabled
+            default: true
+
+          detection_threshold:
+            type: number
+            description: Confidence threshold for object detection
+            minimum: 0.0
+            maximum: 1.0
+            default: 0.5
+
+          grounding_threshold:
+            type: number
+            description: Confidence threshold for vision-language grounding
+            minimum: 0.0
+            maximum: 1.0
+            default: 0.7
+
+          max_objects:
+            type: integer
+            description: Maximum number of objects to detect
+            minimum: 1
+            maximum: 50
+            default: 10
+
+          processing_resolution:
+            type: string
+            description: Resolution for vision processing
+            enum: ["320x240", "640x480", "720p", "1080p"]
+            default: "640x480"
+
+          enable_segmentation:
+            type: boolean
+            description: Enable semantic segmentation
+            default: false
+
+          enable_depth:
+            type: boolean
+            description: Enable depth perception
+            default: false
+
+        required:
+          - enabled
+          - detection_threshold
+          - grounding_threshold
+
+        additionalProperties: false
+
+      action_execution:
+        type: object
+        description: Action execution configuration
+        properties:
+          timeout:
+            type: number
+            description: Timeout for action execution in seconds
+            minimum: 1.0
+            maximum: 120.0
+            default: 30.0
+
+          retry_attempts:
+            type: integer
+            description: Number of retry attempts for failed actions
+            minimum: 0
+            maximum: 10
+            default: 3
+
+          safety_checks:
+            type: boolean
+            description: Enable safety checks before action execution
+            default: true
+
+          enable_feedback:
+            type: boolean
+            description: Enable feedback reporting during execution
+            default: true
+
+          max_velocity_scale:
+            type: number
+            description: Maximum velocity scale factor (0.0 to 1.0)
+            minimum: 0.0
+            maximum: 1.0
+            default: 1.0
+
+        required:
+          - timeout
+          - retry_attempts
+          - safety_checks
+
+        additionalProperties: false
+
+      performance:
+        type: object
+        description: Performance and optimization settings
+        properties:
+          enable_caching:
+            type: boolean
+            description: Enable result caching for performance
+            default: true
+
+          cache_ttl:
+            type: number
+            description: Time-to-live for cached results in seconds
+            minimum: 1.0
+            maximum: 3600.0
+            default: 300.0
+
+          enable_batching:
+            type: boolean
+            description: Enable batching of similar requests
+            default: false
+
+          batch_size:
+            type: integer
+            description: Size of request batches
+            minimum: 1
+            maximum: 100
+            default: 1
+
+          enable_compression:
+            type: boolean
+            description: Enable data compression for network traffic
+            default: true
+
+        required: []
+
+        additionalProperties: false
+
+      logging:
+        type: object
+        description: Logging configuration
+        properties:
+          level:
+            type: string
+            description: Logging level
+            enum: ["debug", "info", "warning", "error"]
+            default: "info"
+
+          enable_console:
+            type: boolean
+            description: Enable console logging
+            default: true
+
+          enable_file:
+            type: boolean
+            description: Enable file logging
+            default: false
+
+          log_file_path:
+            type: string
+            description: Path for log files
+            default: "./logs/vla-system.log"
+
+          log_retention_days:
+            type: integer
+            description: Days to retain log files
+            minimum: 1
+            maximum: 365
+            default: 30
+
+        required:
+          - level
+          - enable_console
+
+        additionalProperties: false
+
+    required:
+      - system_id
+      - version
+      - speech_recognition
+      - llm_integration
+      - vision_language
+      - action_execution
+
+    additionalProperties: false
+
+required:
+  - vla_system
+
+additionalProperties: false
+
+# Example configuration
+examples:
+  - vla_system:
+      system_id: "vla-robot-001"
+      version: "1.0.0"
+      speech_recognition:
+        enabled: true
+        model: "whisper-base"
+        language: "en-US"
+        timeout: 5.0
+        phrase_time_limit: 10.0
+        noise_suppression: true
+        sensitivity: 0.6
+      llm_integration:
+        enabled: true
+        provider: "openai"
+        model: "gpt-3.5-turbo"
+        temperature: 0.3
+        max_tokens: 500
+        api_base: "https://api.openai.com/v1"
+        api_key: "sk-..."
+        request_timeout: 30.0
+        max_retries: 3
+      vision_language:
+        enabled: true
+        detection_threshold: 0.5
+        grounding_threshold: 0.7
+        max_objects: 10
+        processing_resolution: "640x480"
+        enable_segmentation: false
+        enable_depth: false
+      action_execution:
+        timeout: 30.0
+        retry_attempts: 3
+        safety_checks: true
+        enable_feedback: true
+        max_velocity_scale: 1.0
+      performance:
+        enable_caching: true
+        cache_ttl: 300.0
+        enable_batching: false
+        batch_size: 1
+        enable_compression: true
+      logging:
+        level: "info"
+        enable_console: true
+        enable_file: true
+        log_file_path: "./logs/vla-system.log"
+        log_retention_days: 30

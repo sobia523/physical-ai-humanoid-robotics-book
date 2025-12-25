@@ -1,0 +1,603 @@
+# Isaac ROS Real-Time Mapping Configuration
+# Configuration file for real-time mapping system optimized for humanoid robots
+
+real_time_mapping_system:
+  name: "humanoid_real_time_mapping_pipeline"
+  description: "GPU-accelerated real-time mapping pipeline for humanoid robot navigation and environment understanding"
+  version: "1.0"
+  author: "Isaac ROS Developer"
+  license: "Apache 2.0"
+
+# Global pipeline settings
+global:
+  # Enable profiling for performance monitoring
+  enable_profiling: true
+  # Log level for pipeline nodes
+  log_level: "INFO"
+  # Maximum processing delay allowed (seconds)
+  max_processing_delay: 0.05
+  # Enable detailed performance metrics
+  enable_metrics: true
+
+# Node definitions for the real-time mapping pipeline
+nodes:
+  # 1. Input data sources
+  - name: "input_sources"
+    package: "isaac_ros_input_manager"
+    executable: "input_manager_node"
+    parameters:
+      # Input topics
+      camera_topics: ["/front_camera/image_rect_color"]
+      lidar_topic: "/velodyne_points"
+      depth_topic: "/depth_camera/depth_registered"
+      imu_topic: "/imu/data"
+      # Output topics
+      synchronized_data_topic: "/mapping/input_synchronized"
+      # Synchronization parameters
+      enable_synchronization: true
+      max_time_diff: 0.05  # seconds
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 5
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: false  # Input management doesn't need GPU
+
+  # 2. Local map building (fast, local updates)
+  - name: "local_map_builder"
+    package: "isaac_ros_mapping"
+    executable: "local_map_builder_node"
+    parameters:
+      # Input topics
+      input_data_topic: "/mapping/input_synchronized"
+      pose_topic: "/localization/pose"
+      # Output topics
+      local_map_topic: "/mapping/local_map"
+      local_occupancy_grid_topic: "/mapping/local_occupancy"
+      # Local mapping parameters
+      map_resolution: 0.05  # meters per cell
+      local_map_size_x: 20.0  # meters
+      local_map_size_y: 20.0  # meters
+      local_map_size_z: 5.0   # meters
+      update_frequency: 10.0  # Hz (fast updates)
+      decay_factor: 0.95  # For temporal consistency
+      # Local map management
+      enable_local_map_pruning: true
+      local_map_prune_threshold: 0.1  # Probability threshold
+      # Hardware acceleration
+      use_gpu: true
+      gpu_id: 0
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 5
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for local mapping
+      enable_gpu_ray_casting: true
+      enable_gpu_collision_checking: true
+
+  # 3. Point cloud processing and filtering
+  - name: "pointcloud_processor"
+    package: "isaac_ros_pointcloud_utils"
+    executable: "pointcloud_processor_node"
+    parameters:
+      # Input topics
+      input_pointcloud_topic: "/velodyne_points"
+      pose_topic: "/localization/pose"
+      # Output topics
+      processed_pointcloud_topic: "/mapping/processed_pointcloud"
+      filtered_pointcloud_topic: "/mapping/filtered_pointcloud"
+      # Point cloud processing parameters
+      use_gpu: true
+      gpu_id: 0
+      min_range: 0.5  # meters
+      max_range: 50.0  # meters
+      min_height: -2.0  # meters
+      max_height: 5.0   # meters
+      remove_ground: true
+      ground_estimator_points: 100
+      ground_estimator_max_iterations: 100
+      ground_estimator_distance_threshold: 0.2
+      # Filtering parameters
+      voxel_grid_size: 0.1  # meters
+      outlier_removal: true
+      outlier_mean_k: 50
+      outlier_threshold: 1.0
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 5
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 5
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for point cloud operations
+      enable_memory_pooling: true
+
+  # 4. Surface reconstruction
+  - name: "surface_reconstruction"
+    package: "isaac_ros_surface_reconstruction"
+    executable: "surface_reconstruction_node"
+    parameters:
+      # Input topics
+      pointcloud_topic: "/mapping/filtered_pointcloud"
+      pose_topic: "/localization/pose"
+      # Output topics
+      mesh_topic: "/mapping/reconstructed_mesh"
+      surface_normals_topic: "/mapping/surface_normals"
+      # Reconstruction parameters
+      use_gpu: true
+      gpu_id: 0
+      reconstruction_method: "poisson"  # Options: poisson, marching_cubes, ball_pivoting
+      resolution: 0.05  # meters
+      depth: 8  # Octree depth for Poisson reconstruction
+      samples_per_node: 1.0
+      confidence: false
+      manifold: false
+      output_polygons: false
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 5
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 5
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for surface reconstruction
+      enable_gpu_triangulation: true
+
+  # 5. Semantic mapping
+  - name: "semantic_mapping"
+    package: "isaac_ros_semantic_mapping"
+    executable: "semantic_mapper_node"
+    parameters:
+      # Input topics
+      camera_topic: "/front_camera/image_rect_color"
+      segmentation_topic: "/perception/segmentation"
+      pose_topic: "/localization/pose"
+      local_map_topic: "/mapping/local_map"
+      # Output topics
+      semantic_map_topic: "/mapping/semantic_map"
+      object_map_topic: "/mapping/object_map"
+      # Semantic mapping parameters
+      use_gpu: true
+      gpu_id: 0
+      semantic_classes: ["wall", "floor", "ceiling", "furniture", "person", "obstacle"]
+      min_object_size: 0.1  # square meters
+      object_merge_distance: 0.5  # meters
+      temporal_consistency: true
+      temporal_window_size: 5  # frames
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 5
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      tensorrt_precision: "fp16"
+      # Optimize for semantic processing
+      enable_memory_pooling: true
+
+  # 6. Global map building (slower, global consistency)
+  - name: "global_map_builder"
+    package: "isaac_ros_mapping"
+    executable: "global_map_builder_node"
+    parameters:
+      # Input topics
+      local_map_topic: "/mapping/local_map"
+      pose_topic: "/localization/pose"
+      loop_closure_topic: "/localization/loop_closure"
+      # Output topics
+      global_map_topic: "/mapping/global_map"
+      global_occupancy_grid_topic: "/map"
+      # Global mapping parameters
+      map_resolution: 0.05  # meters per cell
+      global_map_size_x: 100.0  # meters
+      global_map_size_y: 100.0  # meters
+      global_map_size_z: 10.0   # meters
+      update_frequency: 1.0  # Hz (slower updates for consistency)
+      enable_loop_closure: true
+      loop_closure_threshold: 0.8
+      # Global map management
+      enable_global_map_pruning: true
+      global_map_prune_threshold: 0.1  # Probability threshold
+      enable_multi_resolution: true
+      low_res_resolution: 0.2  # meters per cell (for large-scale mapping)
+      # Hardware acceleration
+      use_gpu: true
+      gpu_id: 0
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 5
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for global mapping
+      enable_gpu_map_operations: true
+
+  # 7. Map optimization
+  - name: "map_optimizer"
+    package: "isaac_ros_mapping"
+    executable: "map_optimizer_node"
+    parameters:
+      # Input topics
+      input_map_topic: "/mapping/global_map"
+      pose_graph_topic: "/localization/pose_graph"
+      # Output topics
+      optimized_map_topic: "/mapping/optimized_map"
+      # Optimization parameters
+      use_gpu: true
+      gpu_id: 0
+      optimization_method: "graph_based"  # Options: graph_based, bundle_adjustment
+      max_iterations: 100
+      convergence_threshold: 1e-6
+      robust_kernel: "huber"  # Options: huber, cauchy, tukey
+      enable_online_optimization: true
+      optimization_frequency: 0.5  # Hz (slow but thorough)
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 5
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for map optimization
+      enable_gpu_sparse_operations: true
+
+  # 8. Map compression and storage
+  - name: "map_compressor"
+    package: "isaac_ros_mapping"
+    executable: "map_compressor_node"
+    parameters:
+      # Input topics
+      input_map_topic: "/mapping/optimized_map"
+      # Output topics
+      compressed_map_topic: "/mapping/compressed_map"
+      # Compression parameters
+      compression_method: "octree"  # Options: octree, voxel_grid, mesh_simplification
+      compression_ratio: 0.1  # 10% of original size
+      quality_threshold: 0.95  # Maintain 95% quality
+      # Storage parameters
+      enable_offline_storage: true
+      storage_format: "kitti"  # Options: kitti, pcd, ply, binary
+      storage_directory: "/maps/humanoid_robot"
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 5
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 5
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for compression
+      enable_gpu_compression: true
+
+  # 9. Map quality assessment
+  - name: "map_quality_assessment"
+    package: "isaac_ros_mapping"
+    executable: "map_quality_node"
+    parameters:
+      # Input topics
+      input_map_topic: "/mapping/optimized_map"
+      pose_topic: "/localization/pose"
+      # Output topics
+      quality_metrics_topic: "/mapping/quality_metrics"
+      coverage_map_topic: "/mapping/coverage_map"
+      # Quality assessment parameters
+      enable_coverage_analysis: true
+      enable_completeness_check: true
+      enable_consistency_check: true
+      coverage_threshold: 0.8  # 80% coverage required
+      completeness_threshold: 0.9  # 90% completeness required
+      consistency_threshold: 0.95  # 95% consistency required
+      # Quality metrics
+      metrics:
+        - "coverage_percentage"
+        - "completeness_score"
+        - "consistency_score"
+        - "feature_density"
+        - "geometric_accuracy"
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 5
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 5
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for quality assessment
+      enable_gpu_analysis: true
+
+# GPU-specific configuration
+gpu_config:
+  # Default GPU to use
+  default_gpu_id: 0
+  # Memory pool size for GPU operations
+  memory_pool_size: "8192MB"
+  # CUDA stream priority
+  cuda_stream_priority: "normal"
+  # TensorRT cache size for optimized models
+  tensorrt_cache_size: "2048MB"
+  # Enable memory pooling for better performance
+  enable_memory_pooling: true
+  # Enable unified memory (set to false for compatibility)
+  enable_unified_memory: false
+  # Enable CUDA graphs for kernel fusion
+  enable_cuda_graphs: true
+
+# Real-time performance optimization settings
+real_time_performance:
+  # Priority levels for different components
+  priority_levels:
+    local_mapping: "high"  # Critical for navigation
+    global_mapping: "medium"  # Important for consistency
+    optimization: "low"  # Can be delayed if needed
+    compression: "low"  # Background task
+    quality_assessment: "medium"  # Needed for validation
+
+  # Throttling parameters for resource management
+  throttling:
+    enable_throttling: true
+    cpu_threshold: 0.8  # Throttle when CPU usage > 80%
+    gpu_threshold: 0.85  # Throttle when GPU usage > 85%
+    memory_threshold: 0.8  # Throttle when memory usage > 80%
+    throttle_factor: 0.5  # Reduce processing by 50% when throttling
+
+  # Real-time scheduling
+  real_time_scheduling:
+    enable_real_time: true
+    scheduler_policy: "fifo"  # Options: fifo, rr, other
+    priority: 80  # Real-time priority level
+    cpu_affinity: [0, 1]  # CPUs dedicated to mapping
+
+# Performance optimization settings
+performance:
+  # Maximum input queue size for each node
+  max_input_queue_size: 10
+  # Maximum output queue size for each node
+  max_output_queue_size: 10
+  # Enable pipeline profiling for performance analysis
+  enable_pipeline_profiling: true
+  # Enable GPU memory profiling
+  enable_gpu_memory_profiling: true
+  # Target frame rate for the pipeline (Hz)
+  target_frame_rate: 10  # Balanced for real-time mapping
+  # Processing timeout (seconds)
+  processing_timeout: 0.1
+  # Enable adaptive processing based on computational load
+  enable_adaptive_processing: true
+  # Maximum processing load threshold (0.0 to 1.0)
+  max_load_threshold: 0.8
+
+# Map management settings
+map_management:
+  # Local map settings
+  local_map:
+    enable_local_map: true
+    local_map_size: [20.0, 20.0, 5.0]  # x, y, z in meters
+    local_map_resolution: 0.05  # meters per cell
+    local_map_update_rate: 10.0  # Hz
+    local_map_decay_factor: 0.95
+    enable_local_pruning: true
+    local_prune_threshold: 0.1
+
+  # Global map settings
+  global_map:
+    enable_global_map: true
+    global_map_size: [100.0, 100.0, 10.0]  # x, y, z in meters
+    global_map_resolution: 0.05  # meters per cell
+    global_map_update_rate: 1.0  # Hz
+    enable_global_pruning: true
+    global_prune_threshold: 0.1
+    enable_multi_resolution: true
+
+  # Map storage and persistence
+  storage:
+    enable_persistence: true
+    storage_format: "compressed_octree"
+    storage_directory: "/maps/humanoid_robot"
+    enable_incremental_save: true
+    incremental_save_interval: 60.0  # seconds
+    enable_backup: true
+    backup_directory: "/maps/humanoid_robot/backup"
+
+# Monitoring and diagnostics
+monitoring:
+  # Enable detailed logging
+  enable_detailed_logging: false
+  # Log level
+  log_level: "INFO"
+  # Enable performance metrics collection
+  enable_performance_metrics: true
+  # File to save performance metrics
+  metrics_output_file: "/tmp/real_time_mapping_metrics.json"
+  # Enable GPU monitoring
+  enable_gpu_monitoring: true
+  # GPU metrics collection interval (seconds)
+  gpu_monitoring_interval: 1.0
+  # Map-specific monitoring
+  map_coverage_monitoring: true
+  map_quality_monitoring: true
+  real_time_performance_monitoring: true
+
+# Hardware-specific configurations
+hardware_profiles:
+  # For Jetson AGX Orin (balanced performance)
+  jetson_agx_orin:
+    gpu_config:
+      default_gpu_id: 0
+      memory_pool_size: "4096MB"
+      tensorrt_cache_size: "1024MB"
+    performance:
+      target_frame_rate: 5
+      max_load_threshold: 0.7
+    real_time_performance:
+      target_frame_rate: 5
+    map_management:
+      local_map:
+        local_map_size: [15.0, 15.0, 3.0]
+        local_map_resolution: 0.1
+      global_map:
+        global_map_size: [50.0, 50.0, 5.0]
+        global_map_resolution: 0.1
+
+  # For desktop RTX 3080 (high performance)
+  desktop_rtx_3080:
+    gpu_config:
+      default_gpu_id: 0
+      memory_pool_size: "12288MB"
+      tensorrt_cache_size: "3072MB"
+    performance:
+      target_frame_rate: 20
+      max_load_threshold: 0.9
+    real_time_performance:
+      target_frame_rate: 15
+    map_management:
+      local_map:
+        local_map_size: [25.0, 25.0, 8.0]
+        local_map_resolution: 0.025
+      global_map:
+        global_map_size: [200.0, 200.0, 20.0]
+        global_map_resolution: 0.025
+
+# Sensor calibration and transformation settings
+calibration:
+  # Camera intrinsic calibration file
+  camera_intrinsics: "/calibration/front_camera_intrinsics.yaml"
+  # Camera extrinsic calibration (position/orientation relative to robot)
+  camera_extrinsics: "/calibration/camera_to_base.yaml"
+  # LiDAR extrinsic calibration
+  lidar_extrinsics: "/calibration/lidar_to_base.yaml"
+  # Depth camera extrinsic calibration
+  depth_camera_extrinsics: "/calibration/depth_camera_to_base.yaml"
+  # IMU extrinsic calibration
+  imu_extrinsics: "/calibration/imu_to_base.yaml"
+  # TF tree configuration
+  tf_tree: "/calibration/mapping_tf_tree.yaml"
+
+# Launch configuration
+launch_config:
+  # Launch container for all real-time mapping nodes
+  container_name: "real_time_mapping_container"
+  # Use multi-threaded executor
+  executor_type: "multi_threaded"
+  # Number of threads for the executor
+  executor_threads: 6  # More threads for mapping complexity
+  # Composable node container settings
+  container_composable: true
+  # Output destination for container
+  container_output: "screen"
+
+# Mapping-specific settings
+mapping_specific:
+  # Geometric mapping
+  geometric_mapping:
+    enable_geometric_mapping: true
+    geometric_features: ["planes", "edges", "corners", "surfaces"]
+    plane_detection_threshold: 0.05  # meters
+    edge_detection_threshold: 0.1  # meters
+    surface_normal_computation: true
+    normal_estimation_radius: 0.2  # meters
+
+  # Topological mapping
+  topological_mapping:
+    enable_topological_mapping: true
+    topological_nodes: ["rooms", "corridors", "doorways", "landmarks"]
+    connectivity_threshold: 2.0  # meters
+    landmark_detection: true
+    landmark_types: ["door", "window", "furniture", "stairs"]
+
+  # Dynamic object mapping
+  dynamic_mapping:
+    enable_dynamic_mapping: true
+    dynamic_object_types: ["humans", "moving_objects", "vehicles"]
+    static_map_update_frequency: 0.1  # Hz (slow updates for static map)
+    dynamic_map_update_frequency: 5.0  # Hz (fast updates for dynamic objects)
+    object_tracking: true
+    tracking_algorithm: "kalman_filter"
+
+# Safety and validation
+safety:
+  # Map validation
+  map_validation:
+    enable_validation: true
+    validation_criteria:
+      - "minimum_coverage: 0.7"
+      - "maximum_empty_space: 0.9"
+      - "geometric_consistency: 0.85"
+      - "temporal_stability: 0.9"
+    validation_frequency: 5.0  # Hz
+
+  # Collision checking
+  collision_checking:
+    enable_collision_checking: true
+    collision_map_topic: "/mapping/collision_map"
+    safety_margin: 0.5  # meters
+    collision_threshold: 0.7  # occupancy probability
+
+# Recovery and fault tolerance
+recovery:
+  # Enable recovery behaviors
+  enable_recovery_behaviors: true
+  # Recovery strategies
+  strategies:
+    mapping_failure:
+      retry_attempts: 3
+      retry_delay: 1.0  # seconds
+      fallback_map: "last_known_good_map"
+    sensor_failure:
+      enable_sensor_fallback: true
+      fallback_sensors: ["backup_camera", "wheel_odometry"]
+    localization_failure:
+      enable_relocalization: true
+      relocalization_attempts: 5
+      relocalization_delay: 2.0  # seconds
+
+# Example usage commands:
+#
+# 1. Launch the complete real-time mapping pipeline:
+#    ros2 launch real_time_mapping_pipeline.launch.py
+#
+# 2. Launch with specific hardware profile:
+#    ros2 launch real_time_mapping_pipeline.launch.py hardware_profile:=desktop_rtx_3080
+#
+# 3. Monitor GPU usage during mapping:
+#    nvidia-smi -l 1
+#
+# 4. Visualize real-time mapping outputs:
+#    ros2 run rviz2 rviz2 -d real_time_mapping_visualization.rviz

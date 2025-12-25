@@ -1,0 +1,468 @@
+# Perception Pipeline API Contract
+
+openapi: 3.0.0
+info:
+  title: Isaac ROS Perception Pipeline API
+  description: API for configuring and controlling perception pipelines in the AI-Robot Brain
+  version: 1.0.0
+  contact:
+    name: NVIDIA Isaac ROS Team
+    url: https://developer.nvidia.com/isaac-ros
+    email: isaac-ros-team@nvidia.com
+
+servers:
+  - url: http://localhost:8080
+    description: Local Isaac ROS Perception Pipeline Server
+
+paths:
+  /perception/pipelines:
+    get:
+      summary: List all available perception pipelines
+      description: Retrieve a list of all configured perception pipelines
+      responses:
+        '200':
+          description: List of perception pipelines
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PerceptionPipeline'
+    post:
+      summary: Create a new perception pipeline
+      description: Configure and start a new perception pipeline
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PerceptionPipelineConfig'
+      responses:
+        '201':
+          description: Pipeline created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerceptionPipeline'
+        '400':
+          description: Invalid configuration
+
+  /perception/pipelines/{pipelineId}:
+    get:
+      summary: Get pipeline details
+      description: Retrieve detailed information about a specific perception pipeline
+      parameters:
+        - name: pipelineId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the perception pipeline
+      responses:
+        '200':
+          description: Pipeline details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerceptionPipeline'
+        '404':
+          description: Pipeline not found
+
+    put:
+      summary: Update pipeline configuration
+      description: Modify the configuration of an existing perception pipeline
+      parameters:
+        - name: pipelineId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the perception pipeline
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PerceptionPipelineConfig'
+      responses:
+        '200':
+          description: Pipeline updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerceptionPipeline'
+        '404':
+          description: Pipeline not found
+        '400':
+          description: Invalid configuration
+
+    delete:
+      summary: Delete a perception pipeline
+      description: Stop and remove a perception pipeline
+      parameters:
+        - name: pipelineId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the perception pipeline
+      responses:
+        '204':
+          description: Pipeline deleted successfully
+        '404':
+          description: Pipeline not found
+
+  /perception/pipelines/{pipelineId}/status:
+    get:
+      summary: Get pipeline status
+      description: Retrieve the current operational status of a perception pipeline
+      parameters:
+        - name: pipelineId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the perception pipeline
+      responses:
+        '200':
+          description: Pipeline status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PipelineStatus'
+        '404':
+          description: Pipeline not found
+
+  /perception/pipelines/{pipelineId}/results:
+    get:
+      summary: Get perception results
+      description: Retrieve the latest perception results from a pipeline
+      parameters:
+        - name: pipelineId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the perception pipeline
+        - name: resultType
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [detection, depth, segmentation, tracking]
+          description: Type of perception result to retrieve
+        - name: timestamp
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: Specific timestamp for result retrieval
+      responses:
+        '200':
+          description: Perception results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerceptionResults'
+        '404':
+          description: Pipeline or results not found
+
+components:
+  schemas:
+    PerceptionPipeline:
+      type: object
+      required:
+        - id
+        - name
+        - status
+        - config
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the pipeline
+          example: "pipeline-001"
+        name:
+          type: string
+          description: Human-readable name of the pipeline
+          example: "Humanoid Object Detection Pipeline"
+        description:
+          type: string
+          description: Detailed description of the pipeline
+          example: "Pipeline for detecting objects in humanoid robot environment"
+        status:
+          $ref: '#/components/schemas/PipelineStatus'
+        config:
+          $ref: '#/components/schemas/PerceptionPipelineConfig'
+        performance_metrics:
+          $ref: '#/components/schemas/PerformanceMetrics'
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the pipeline was created
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the pipeline was last updated
+
+    PerceptionPipelineConfig:
+      type: object
+      required:
+        - input_sources
+        - processing_nodes
+        - output_destinations
+      properties:
+        name:
+          type: string
+          description: Configuration name
+          example: "object_detection_config"
+        input_sources:
+          type: array
+          description: List of input sensor sources
+          items:
+            $ref: '#/components/schemas/InputSource'
+        processing_nodes:
+          type: array
+          description: List of processing nodes in the pipeline
+          items:
+            $ref: '#/components/schemas/ProcessingNode'
+        output_destinations:
+          type: array
+          description: List of output destinations
+          items:
+            $ref: '#/components/schemas/OutputDestination'
+        hardware_acceleration:
+          $ref: '#/components/schemas/HardwareAcceleration'
+        parameters:
+          type: object
+          description: Additional configuration parameters
+          additionalProperties: true
+
+    InputSource:
+      type: object
+      required:
+        - type
+        - source
+      properties:
+        type:
+          type: string
+          enum: [camera, lidar, imu, depth_camera, stereo_camera]
+          description: Type of sensor input
+        source:
+          type: string
+          description: Source identifier (topic name, file path, etc.)
+          example: "/humanoid/camera/image_raw"
+        parameters:
+          type: object
+          description: Sensor-specific parameters
+          additionalProperties: true
+
+    ProcessingNode:
+      type: object
+      required:
+        - id
+        - algorithm
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the processing node
+          example: "object_detector_1"
+        algorithm:
+          type: string
+          enum: [object_detection, depth_estimation, segmentation, tracking, stereo_matching]
+          description: Type of processing algorithm
+        implementation:
+          type: string
+          description: Specific implementation (e.g., isaac_ros_detectnet)
+          example: "isaac_ros_detectnet"
+        parameters:
+          type: object
+          description: Algorithm-specific parameters
+          additionalProperties: true
+        hardware_acceleration:
+          $ref: '#/components/schemas/HardwareAcceleration'
+
+    OutputDestination:
+      type: object
+      required:
+        - type
+        - destination
+      properties:
+        type:
+          type: string
+          enum: [ros_topic, file, visualization, other]
+          description: Type of output destination
+        destination:
+          type: string
+          description: Destination identifier
+          example: "/perception/detected_objects"
+        format:
+          type: string
+          description: Output data format
+          example: "vision_msgs/Detection2DArray"
+
+    HardwareAcceleration:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          description: Whether hardware acceleration is enabled
+          default: true
+        device_type:
+          type: string
+          enum: [cuda, tensorrt, cpu]
+          description: Type of hardware acceleration to use
+          default: cuda
+        device_id:
+          type: integer
+          description: Specific device ID to use
+          default: 0
+        precision:
+          type: string
+          enum: [fp32, fp16, int8]
+          description: Precision mode for acceleration
+          default: fp32
+
+    PipelineStatus:
+      type: object
+      required:
+        - state
+        - health
+      properties:
+        state:
+          type: string
+          enum: [idle, running, paused, error, initializing]
+          description: Current operational state
+        health:
+          type: string
+          enum: [healthy, degraded, error]
+          description: Health status of the pipeline
+        active_nodes:
+          type: integer
+          description: Number of active processing nodes
+        error_message:
+          type: string
+          description: Error message if in error state
+        last_update:
+          type: string
+          format: date-time
+          description: Timestamp of last status update
+
+    PerformanceMetrics:
+      type: object
+      properties:
+        processing_rate:
+          type: number
+          format: float
+          description: Processing rate in frames per second
+          example: 30.0
+        latency:
+          type: number
+          format: float
+          description: Processing latency in milliseconds
+          example: 45.2
+        cpu_utilization:
+          type: number
+          format: float
+          description: CPU utilization percentage
+          example: 45.6
+        gpu_utilization:
+          type: number
+          format: float
+          description: GPU utilization percentage
+          example: 78.3
+        memory_usage:
+          type: number
+          format: float
+          description: Memory usage in MB
+          example: 1200.5
+        accuracy_metrics:
+          type: object
+          description: Accuracy-related metrics
+          additionalProperties: true
+
+    PerceptionResults:
+      type: object
+      required:
+        - timestamp
+        - results
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the results
+        pipeline_id:
+          type: string
+          description: ID of the pipeline that generated results
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PerceptionResult'
+        metadata:
+          type: object
+          description: Additional metadata about the results
+          additionalProperties: true
+
+    PerceptionResult:
+      type: object
+      required:
+        - type
+        - data
+      properties:
+        type:
+          type: string
+          enum: [object_detection, depth_map, segmentation, tracking, other]
+          description: Type of perception result
+        data:
+          type: object
+          description: Result data (structure varies by type)
+          additionalProperties: true
+        confidence:
+          type: number
+          format: float
+          description: Confidence score of the result (0.0 to 1.0)
+          example: 0.85
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of when the result was generated
+
+  parameters:
+    PipelineId:
+      name: pipelineId
+      in: path
+      required: true
+      description: Unique identifier of the perception pipeline
+      schema:
+        type: string
+
+  responses:
+    InvalidRequest:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: perception-pipelines
+    description: Operations related to perception pipeline management
+  - name: results
+    description: Operations related to perception results retrieval
+  - name: status
+    description: Operations related to pipeline status monitoring

@@ -1,0 +1,281 @@
+#usda 1.0
+(
+    doc = "Example Isaac Sim scene for synthetic dataset creation with humanoid robot"
+    metersPerUnit = 1.0
+    upAxis = "Z"
+    customLayerData = {
+        string isaacSIMLayer = "Default"
+    }
+)
+
+def Xform "World"
+{
+    def Xform "Robot"
+    {
+        # Humanoid robot with sensors
+        def Xform "Humanoid"
+        {
+            # Robot body with basic geometry
+            def Capsule "Body"
+            {
+                double radius = 0.15
+                double height = 0.8
+                color3f primvars:displayColor = (0.7, 0.7, 0.7) ( interpolation = "constant" )
+            }
+
+            def Capsule "Head"
+            {
+                double radius = 0.1
+                double height = 0.2
+                color3f primvars:displayColor = (0.8, 0.8, 0.8) ( interpolation = "constant" )
+                add xformOp:transform:resetXformOps
+                add xformOp:translate
+                add xformOp:orient
+                add xformOp:scale
+                xformOp:translate = (0.0, 0.0, 0.9)
+            }
+
+            def Capsule "LeftArm"
+            {
+                double radius = 0.07
+                double height = 0.6
+                color3f primvars:displayColor = (0.7, 0.7, 0.7) ( interpolation = "constant" )
+                add xformOp:transform:resetXformOps
+                add xformOp:translate
+                add xformOp:orient
+                add xformOp:scale
+                xformOp:translate = (-0.3, 0.0, 0.4)
+                xformOp:orient = (0.707107, 0.0, 0.0, 0.707107)
+            }
+
+            def Capsule "RightArm"
+            {
+                double radius = 0.07
+                double height = 0.6
+                color3f primvars:displayColor = (0.7, 0.7, 0.7) ( interpolation = "constant" )
+                add xformOp:transform:resetXformOps
+                add xformOp:translate
+                add xformOp:orient
+                add xformOp:scale
+                xformOp:translate = (0.3, 0.0, 0.4)
+                xformOp:orient = (0.707107, 0.0, 0.0, 0.707107)
+            }
+
+            def Capsule "LeftLeg"
+            {
+                double radius = 0.08
+                double height = 0.7
+                color3f primvars:displayColor = (0.6, 0.6, 0.6) ( interpolation = "constant" )
+                add xformOp:transform:resetXformOps
+                add xformOp:translate
+                add xformOp:orient
+                add xformOp:scale
+                xformOp:translate = (-0.1, 0.0, -0.35)
+                xformOp:orient = (0.707107, 0.0, 0.0, 0.707107)
+            }
+
+            def Capsule "RightLeg"
+            {
+                double radius = 0.08
+                double height = 0.7
+                color3f primvars:displayColor = (0.6, 0.6, 0.6) ( interpolation = "constant" )
+                add xformOp:transform:resetXformOps
+                add xformOp:translate
+                add xformOp:orient
+                add xformOp:scale
+                xformOp:translate = (0.1, 0.0, -0.35)
+                xformOp:orient = (0.707107, 0.0, 0.0, 0.707107)
+            }
+        }
+
+        # RGB Camera sensor
+        def Camera "RGB_Camera"
+        {
+            float3 focalLength = 24.0
+            float horizontalAperture = 36.0
+            float verticalAperture = 24.0
+            float3 position = (0.0, 0.0, 1.5)
+            float3 clippingRange = (0.1, 100.0)
+            add xformOp:transform:resetXformOps
+            add xformOp:translate
+            xformOp:translate = (0.0, 0.0, 1.5)
+        }
+
+        # Depth Camera sensor
+        def Camera "Depth_Camera"
+        {
+            float3 focalLength = 24.0
+            float horizontalAperture = 36.0
+            float verticalAperture = 24.0
+            float3 position = (0.0, 0.0, 1.5)
+            float3 clippingRange = (0.1, 10.0)
+            add xformOp:transform:resetXformOps
+            add xformOp:translate
+            xformOp:translate = (0.0, 0.0, 1.5)
+        }
+    }
+
+    def Xform "Environment"
+    {
+        # Ground plane
+        def Plane "GroundPlane"
+        {
+            double3 size = (20.0, 20.0, 1.0)
+            color3f primvars:displayColor = (0.5, 0.6, 0.4) ( interpolation = "constant" )
+            add xformOp:transform:resetXformOps
+            add xformOp:translate
+            add xformOp:orient
+            add xformOp:scale
+            xformOp:translate = (0.0, 0.0, -0.5)
+        }
+
+        # Walls
+        def Cube "WallFront"
+        {
+            double3 size = (20.0, 1.0, 3.0)
+            color3f primvars:displayColor = (0.8, 0.8, 0.8) ( interpolation = "constant" )
+            add xformOp:transform:resetXformOps
+            add xformOp:translate
+            xformOp:translate = (0.0, -10.0, 1.0)
+        }
+
+        def Cube "WallBack"
+        {
+            double3 size = (20.0, 1.0, 3.0)
+            color3f primvars:displayColor = (0.8, 0.8, 0.8) ( interpolation = "constant" )
+            add xformOp:transform:resetXformOps
+            add xformOp:translate
+            xformOp:translate = (0.0, 10.0, 1.0)
+        }
+
+        def Cube "WallLeft"
+        {
+            double3 size = (1.0, 20.0, 3.0)
+            color3f primvars:displayColor = (0.8, 0.8, 0.8) ( interpolation = "constant" )
+            add xformOp:transform:resetXformOps
+            add xformOp:translate
+            xformOp:translate = (-10.0, 0.0, 1.0)
+        }
+
+        def Cube "WallRight"
+        {
+            double3 size = (1.0, 20.0, 3.0)
+            color3f primvars:displayColor = (0.8, 0.8, 0.8) ( interpolation = "constant" )
+            add xformOp:transform:resetXformOps
+            add xformOp:translate
+            xformOp:translate = (10.0, 0.0, 1.0)
+        }
+
+        # Objects for synthetic data generation
+        def Cube "Table"
+        {
+            double3 size = (2.0, 1.0, 0.8)
+            color3f primvars:displayColor = (0.6, 0.4, 0.2) ( interpolation = "constant" )
+            add xformOp:transform:resetXformOps
+            add xformOp:translate
+            xformOp:translate = (3.0, 2.0, 0.4)
+        }
+
+        def Sphere "Ball"
+        {
+            double radius = 0.3
+            color3f primvars:displayColor = (0.9, 0.2, 0.2) ( interpolation = "constant" )
+            add xformOp:transform:resetXformOps
+            add xformOp:translate
+            xformOp:translate = (4.0, -1.0, 0.3)
+        }
+
+        def Cylinder "Cylinder"
+        {
+            double radius = 0.2
+            double height = 0.6
+            color3f primvars:displayColor = (0.2, 0.2, 0.9) ( interpolation = "constant" )
+            add xformOp:transform:resetXformOps
+            add xformOp:translate
+            xformOp:translate = (-2.0, 1.5, 0.3)
+        }
+
+        def Cone "Cone"
+        {
+            double radius = 0.25
+            double height = 0.5
+            color3f primvars:displayColor = (0.2, 0.9, 0.2) ( interpolation = "constant" )
+            add xformOp:transform:resetXformOps
+            add xformOp:translate
+            xformOp:translate = (-1.0, -2.0, 0.25)
+        }
+
+        # Additional objects for diverse dataset
+        def Capsule "Capsule"
+        {
+            double radius = 0.15
+            double height = 0.7
+            color3f primvars:displayColor = (0.8, 0.6, 0.2) ( interpolation = "constant" )
+            add xformOp:transform:resetXformOps
+            add xformOp:translate
+            xformOp:translate = (2.0, -3.0, 0.35)
+        }
+
+        def Torus "Torus"
+        {
+            double majorRadius = 0.3
+            double minorRadius = 0.1
+            color3f primvars:displayColor = (0.7, 0.3, 0.8) ( interpolation = "constant" )
+            add xformOp:transform:resetXformOps
+            add xformOp:translate
+            xformOp:translate = (-3.0, -1.0, 0.5)
+        }
+    }
+
+    def Xform "Lighting"
+    {
+        # Main key light
+        def DistantLight "KeyLight"
+        {
+            color3f color = (1.0, 0.98, 0.9)
+            float intensity = 500.0
+            add xformOp:transform:resetXformOps
+            add xformOp:translate
+            add xformOp:orient
+            xformOp:translate = (-5.0, -5.0, 5.0)
+            xformOp:orient = (0.26, -0.26, 0.93, -0.11)
+        }
+
+        # Fill light
+        def DistantLight "FillLight"
+        {
+            color3f color = (0.9, 0.95, 1.0)
+            float intensity = 200.0
+            add xformOp:transform:resetXformOps
+            add xformOp:translate
+            add xformOp:orient
+            xformOp:translate = (3.0, 2.0, 3.0)
+            xformOp:orient = (-0.39, 0.13, 0.91, 0.05)
+        }
+
+        # Rim light
+        def DistantLight "RimLight"
+        {
+            color3f color = (0.95, 1.0, 0.98)
+            float intensity = 150.0
+            add xformOp:transform:resetXformOps
+            add xformOp:translate
+            add xformOp:orient
+            xformOp:translate = (2.0, -3.0, 2.0)
+            xformOp:orient = (0.32, -0.47, 0.82, 0.08)
+        }
+    }
+
+    # Physics scene configuration
+    def PhysicsScene "PhysicsScene"
+    {
+        float3 gravity = (0.0, 0.0, -9.81)
+        bool enableCCD = False
+        bool enableStabilization = True
+        bool enableAdaptiveForce = False
+        int maxIter = 16
+        float bounceThresholdVelocity = 0.5
+        float frictionCoefficient = 0.5
+        float restitutionThresholdVelocity = 1.0
+    }
+}

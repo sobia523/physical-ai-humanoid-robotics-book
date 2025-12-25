@@ -1,0 +1,315 @@
+# Domain Randomization Configuration for Isaac Sim
+# Configuration file for systematic variation of environmental parameters
+
+domain_randomization:
+  # Master switch for domain randomization
+  enabled: true
+  seed: 12345  # For reproducible randomization
+
+  # Lighting randomization parameters
+  lighting:
+    # Enable/disable lighting randomization
+    enabled: true
+
+    # Intensity randomization
+    intensity:
+      enabled: true
+      distribution: "log_uniform"  # Options: uniform, log_uniform, normal
+      min_value: 100.0
+      max_value: 1000.0
+      normal_mean: 500.0
+      normal_std: 150.0
+
+    # Color temperature randomization (for realistic lighting)
+    color_temperature:
+      enabled: true
+      distribution: "uniform"
+      min_value: 3000  # Kelvin
+      max_value: 7000  # Kelvin
+
+    # Position randomization for dynamic lighting
+    position:
+      enabled: true
+      distribution: "uniform"
+      jitter_range: [-2.0, 2.0, -2.0, 2.0, 1.0, 5.0]  # [min_x, max_x, min_y, max_y, min_z, max_z]
+
+    # Number of lights randomization
+    num_lights:
+      enabled: true
+      distribution: "uniform"
+      min_value: 1
+      max_value: 5
+
+  # Material property randomization
+  materials:
+    # Enable/disable material randomization
+    enabled: true
+
+    # Roughness randomization
+    roughness:
+      enabled: true
+      distribution: "uniform"
+      min_value: 0.05
+      max_value: 0.95
+
+    # Metallic property randomization
+    metallic:
+      enabled: true
+      distribution: "uniform"
+      min_value: 0.0
+      max_value: 0.5
+
+    # Albedo (base color) randomization
+    albedo:
+      enabled: true
+      distribution: "uniform"
+      min_value: 0.1
+      max_value: 1.0
+
+    # Specular reflection randomization
+    specular:
+      enabled: true
+      distribution: "uniform"
+      min_value: 0.0
+      max_value: 1.0
+
+    # Emissive property randomization
+    emissive:
+      enabled: false  # Usually kept at 0 for most objects
+      distribution: "uniform"
+      min_value: 0.0
+      max_value: 0.1
+
+    # Texture randomization
+    textures:
+      enabled: true
+      texture_library_path: "/Isaac/Props/Textures/"
+      texture_types: ["wood", "metal", "plastic", "fabric", "concrete", "ceramic"]
+      randomize_color: true
+      randomize_pattern: true
+
+  # Object property randomization
+  objects:
+    # Enable/disable object randomization
+    enabled: true
+
+    # Position randomization
+    position:
+      enabled: true
+      distribution: "uniform"
+      jitter_range: [-0.5, 0.5, -0.5, 0.5, 0.0, 0.0]  # No vertical jitter for stability
+
+    # Rotation randomization
+    rotation:
+      enabled: true
+      distribution: "uniform"
+      max_rotation_degrees: [5.0, 5.0, 15.0]  # Max rotation around X, Y, Z axes in degrees
+
+    # Scale randomization
+    scale:
+      enabled: true
+      distribution: "uniform"
+      min_scale: 0.8
+      max_scale: 1.2
+      uniform_scaling: false  # Allow non-uniform scaling if false
+
+    # Physics property randomization
+    physics:
+      mass:
+        enabled: true
+        distribution: "normal"
+        normal_mean_factor: 1.0  # Factor to multiply base mass
+        normal_std_factor: 0.2   # Standard deviation as fraction of mean
+
+      friction:
+        enabled: true
+        distribution: "uniform"
+        min_value: 0.1
+        max_value: 0.9
+
+      restitution:
+        enabled: true
+        distribution: "uniform"
+        min_value: 0.0
+        max_value: 0.3
+
+  # Camera parameter randomization
+  camera:
+    # Enable/disable camera randomization
+    enabled: true
+
+    # Position randomization
+    position:
+      enabled: true
+      distribution: "normal"
+      normal_std: [0.02, 0.02, 0.02]  # Standard deviation for X, Y, Z in meters
+
+    # Rotation randomization
+    rotation:
+      enabled: true
+      distribution: "normal"
+      normal_std: [1.0, 1.0, 1.0]  # Standard deviation for X, Y, Z rotations in degrees
+
+    # Intrinsic parameter randomization
+    intrinsic:
+      fov:
+        enabled: true
+        distribution: "uniform"
+        jitter_degrees: 2.0  # FOV jitter in degrees
+
+      focal_length:
+        enabled: false  # Usually kept constant for consistency
+        distribution: "normal"
+        normal_std_factor: 0.05
+
+      principal_point:
+        enabled: true
+        distribution: "uniform"
+        jitter_pixels: 5.0  # Jitter in pixels
+
+    # Sensor noise randomization
+    noise:
+      enabled: true
+      rgb_noise:
+        mean: 0.0
+        std: [0.005, 0.01]  # Range of noise levels
+      depth_noise:
+        mean: 0.0
+        std: [0.01, 0.03]  # Range of noise levels
+
+  # Environment layout randomization
+  environment:
+    # Enable/disable environment randomization
+    enabled: true
+
+    # Object placement randomization
+    object_placement:
+      enabled: true
+      min_distance: 0.5  # Minimum distance between objects
+      max_objects: 10    # Maximum number of objects in scene
+      object_density: 0.3  # Probability of placing an object in a valid location
+
+    # Background randomization
+    background:
+      enabled: true
+      background_types: ["outdoor", "indoor", "cluttered", "minimal"]
+      background_complexity: ["low", "medium", "high"]
+
+    # Clutter level randomization
+    clutter:
+      enabled: true
+      min_clutter: 0
+      max_clutter: 15
+      clutter_objects: ["box", "sphere", "cylinder", "capsule"]
+
+  # Correlated randomization (parameters that should change together)
+  correlated:
+    # Material-to-friction correlation
+    material_friction:
+      enabled: true
+      correlations:
+        - materials: ["wood", "concrete"]
+          friction_range: [0.4, 0.8]
+        - materials: ["metal", "ceramic"]
+          friction_range: [0.2, 0.5]
+        - materials: ["fabric", "rubber"]
+          friction_range: [0.6, 0.9]
+
+    # Lighting-to-color-correlation
+    lighting_color:
+      enabled: true
+      correlations:
+        - lighting_condition: "warm"
+          color_temperature_range: [3000, 4000]
+          light_color_shift: [0.1, -0.05, -0.1]  # RGB shifts
+        - lighting_condition: "cool"
+          color_temperature_range: [6000, 7000]
+          light_color_shift: [-0.05, -0.05, 0.1]  # RGB shifts
+
+  # Curriculum randomization (gradually increase randomness)
+  curriculum:
+    enabled: false  # Enable for curriculum learning approaches
+    stages:
+      - name: "easy"
+        lighting_intensity_range: [400, 600]
+        material_variation: 0.2
+        object_variation: 0.1
+        complexity: 1
+      - name: "medium"
+        lighting_intensity_range: [300, 700]
+        material_variation: 0.4
+        object_variation: 0.2
+        complexity: 2
+      - name: "hard"
+        lighting_intensity_range: [200, 800]
+        material_variation: 0.6
+        object_variation: 0.3
+        complexity: 3
+      - name: "expert"
+        lighting_intensity_range: [100, 1000]
+        material_variation: 0.8
+        object_variation: 0.5
+        complexity: 4
+
+  # Validation parameters to ensure realistic randomization
+  validation:
+    # Physics plausibility checks
+    physics:
+      min_mass: 0.01  # Minimum mass in kg
+      max_mass: 1000.0  # Maximum mass in kg
+      min_friction: 0.01  # Minimum friction coefficient
+      max_friction: 1.0  # Maximum friction coefficient
+      min_restitution: 0.0  # Minimum restitution
+      max_restitution: 1.0  # Maximum restitution
+
+    # Visual plausibility checks
+    visual:
+      min_light_intensity: 10.0  # Minimum light intensity
+      max_light_intensity: 10000.0  # Maximum light intensity
+      min_albedo: 0.01  # Minimum albedo value
+      max_albedo: 1.0  # Maximum albedo value
+      min_roughness: 0.01  # Minimum roughness
+      max_roughness: 0.99  # Maximum roughness
+
+  # Performance optimization
+  performance:
+    # Cache randomization results for performance
+    enable_caching: true
+    cache_size: 1000  # Number of randomization states to cache
+    cache_directory: "./randomization_cache"
+
+    # Batch randomization for performance
+    batch_size: 32  # Number of randomizations to generate at once
+    enable_parallel: true  # Enable parallel randomization
+    num_workers: 4  # Number of parallel workers
+
+  # Scheduling parameters
+  scheduling:
+    # How often to apply randomization
+    randomization_frequency: "per_reset"  # Options: per_reset, per_episode, per_step
+    randomize_at_init: true  # Randomize when environment initializes
+    randomize_during_episode: false  # Whether to randomize during an episode
+
+# Isaac Sim specific integration settings
+isaac_sim_integration:
+  # USD stage randomization settings
+  usd_stage:
+    randomize_prims: true
+    randomize_materials: true
+    randomize_lights: true
+    randomize_physics: true
+
+  # Replicator integration settings
+  replicator:
+    enabled: true
+    use_replicator: true  # Use Isaac Sim Replicator for advanced randomization
+    auto_add_to_graph: true  # Automatically add randomization to replicator graph
+
+  # Extension settings
+  extensions:
+    omni.replicator.isaac:
+      enabled: true
+      auto_cache_randomization: true
+    omni.kit.viewport.utility:
+      enabled: true
+      randomize_viewport_settings: false

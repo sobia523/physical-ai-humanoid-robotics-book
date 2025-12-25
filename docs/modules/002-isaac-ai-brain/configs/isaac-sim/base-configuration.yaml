@@ -1,0 +1,156 @@
+# Isaac Sim Configuration for Synthetic Data Generation
+# Base configuration for humanoid robot simulation and data generation
+
+app:
+  # Application settings
+  window_width: 1280
+  window_height: 720
+  title: "Humanoid Robot Synthetic Data Generator"
+
+simulation:
+  # Simulation parameters
+  stage_units_in_meters: 1.0
+  rendering_frequency: 60
+  physics_frequency: 60
+  enable_viewport: true
+  enable_fabric: true
+
+  # Physics settings
+  physics:
+    gravity: [0.0, 0.0, -9.81]
+    solver_type: "TGS"
+    num_position_iterations: 4
+    num_velocity_iterations: 1
+    enable_gpu_physics: true
+
+  # Rendering settings
+  rendering:
+    enable_lights: true
+    enable_cameras: true
+    enable_meshes: true
+    enable_colliders: false
+    enable_rigid_bodies: true
+    enable_joints: true
+
+robot:
+  # Humanoid robot configuration
+  model_path: "/Isaac/Robots/Humanoid/urdf/humanoid.urdf"
+  position: [0.0, 0.0, 1.0]
+  orientation: [0.0, 0.0, 0.0, 1.0]
+
+  # Robot sensors
+  sensors:
+    rgb_camera:
+      position: [0.0, 0.0, 1.5]
+      rotation: [0.0, 0.0, 0.0]
+      resolution: [640, 480]
+      fov: 60.0
+      clipping_range: [0.1, 10.0]
+
+    depth_camera:
+      position: [0.0, 0.0, 1.5]
+      rotation: [0.0, 0.0, 0.0]
+      resolution: [640, 480]
+      fov: 60.0
+      clipping_range: [0.1, 10.0]
+
+    lidar:
+      position: [0.0, 0.0, 1.6]
+      rotation: [0.0, 0.0, 0.0]
+      samples: 1000
+      max_range: 10.0
+      fov: 360.0
+
+environment:
+  # Environment configuration
+  scene_path: "/Isaac/Environments/Simple_Room.usd"
+
+  # Objects in the environment
+  objects:
+    - name: "table"
+      model_path: "/Isaac/Props/Simple_Table/table.usd"
+      position: [2.0, 0.0, 0.0]
+      properties:
+        friction: 0.5
+        restitution: 0.1
+        mass: 10.0
+
+    - name: "chair"
+      model_path: "/Isaac/Props/Chair/chair.usd"
+      position: [3.0, 1.0, 0.0]
+      properties:
+        friction: 0.4
+        restitution: 0.05
+        mass: 5.0
+
+lighting:
+  # Lighting configuration for photorealistic rendering
+  key_light:
+    type: "DistantLight"
+    position: [-5.0, -5.0, 5.0]
+    intensity: 500.0
+    color: [1.0, 0.98, 0.9]
+
+  fill_light:
+    type: "DistantLight"
+    position: [3.0, 2.0, 3.0]
+    intensity: 200.0
+    color: [0.9, 0.95, 1.0]
+
+  rim_light:
+    type: "DistantLight"
+    position: [2.0, -3.0, 2.0]
+    intensity: 150.0
+    color: [0.95, 1.0, 0.98]
+
+domain_randomization:
+  # Domain randomization parameters
+  enabled: true
+  parameters:
+    lighting:
+      intensity_variation: 0.3
+      color_temperature_range: [4000, 7000]
+      position_jitter: 0.5
+
+    materials:
+      roughness_range: [0.1, 0.9]
+      metallic_range: [0.0, 0.5]
+      albedo_range: [0.1, 1.0]
+
+    objects:
+      position_jitter: 0.2
+      rotation_jitter: 10.0  # degrees
+      scale_variation: 0.1
+
+    camera:
+      position_jitter: 0.05
+      rotation_jitter: 2.0
+
+data_generation:
+  # Data generation settings
+  output_directory: "./synthetic_dataset"
+  num_samples: 10000
+  sample_frequency: 30  # Hz
+
+  # Data types to generate
+  data_types:
+    - "rgb_images"
+    - "depth_images"
+    - "point_clouds"
+    - "object_poses"
+    - "segmentation_masks"
+    - "bounding_boxes"
+
+  # Annotation settings
+  annotations:
+    generate_segmentation: true
+    generate_bounding_boxes: true
+    generate_keypoints: false
+    generate_poses: true
+
+performance:
+  # Performance optimization settings
+  max_gpu_memory: "auto"
+  enable_multi_gpu: false
+  batch_size: 1
+  num_workers: 4

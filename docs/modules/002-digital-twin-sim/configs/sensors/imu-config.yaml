@@ -1,0 +1,246 @@
+# IMU Sensor Configuration for Humanoid Robotics Simulation
+
+# General IMU sensor properties
+imu_sensor:
+  name: "humanoid_imu"
+  type: "imu"
+  update_rate: 100.0  # Hz (typical IMU sample rate)
+  frame_id: "imu_link"
+
+  # IMU sensor properties
+  imu:
+    # Accelerometer properties
+    accelerometer:
+      resolution: 0.001       # Resolution of accelerometer (m/s²)
+      range: 16.0             # Range of accelerometer (+/- g's)
+      noise_density: 0.017    # Noise density (m/s²/√Hz)
+      random_walk: 0.0006     # Random walk (m/s²/√Hz)
+      bias_correlation_time: 3600.0  # Bias correlation time (s)
+      turn_on_bias: 0.001     # Turn-on bias (m/s²)
+
+    # Gyroscope properties
+    gyroscope:
+      resolution: 0.001       # Resolution of gyroscope (rad/s)
+      range: 8.727            # Range of gyroscope (+/- rad/s) (±500 deg/s)
+      noise_density: 0.006    # Noise density (rad/s/√Hz)
+      random_walk: 0.0006     # Random walk (rad/s/√Hz)
+      bias_correlation_time: 3600.0  # Bias correlation time (s)
+      turn_on_bias: 0.001     # Turn-on bias (rad/s)
+
+    # Magnetometer properties (optional)
+    magnetometer:
+      resolution: 0.001       # Resolution of magnetometer (T)
+      range: 1.3e-5           # Range of magnetometer (+/- T)
+      noise_density: 0.015e-6 # Noise density (T/√Hz)
+      random_walk: 0.005e-6   # Random walk (T/√Hz)
+      bias_correlation_time: 3600.0  # Bias correlation time (s)
+      turn_on_bias: 0.01e-6   # Turn-on bias (T)
+
+  # Noise model for realistic simulation
+  noise:
+    type: "realistic_imu"
+    parameters:
+      # Accelerometer noise parameters
+      accel_noise_density: 0.017      # (m/s²/√Hz)
+      accel_random_walk: 0.0006       # (m/s²/√Hz)
+      # Gyroscope noise parameters
+      gyro_noise_density: 0.006       # (rad/s/√Hz)
+      gyro_random_walk: 0.0006        # (rad/s/√Hz)
+      # Correlation times
+      accel_bias_correlation_time: 3600.0
+      gyro_bias_correlation_time: 3600.0
+
+  # Sensor placement on robot
+  pose:
+    position:
+      x: 0.0                  # Position relative to parent link (meters)
+      y: 0.0
+      z: 0.85               # Positioned at torso level
+    orientation:
+      roll: 0.0               # Orientation relative to parent link (radians)
+      pitch: 0.0
+      yaw: 0.0
+
+# High-precision tactical grade IMU configuration
+tactical_imu:
+  name: "humanoid_tactical_imu"
+  type: "imu"
+  update_rate: 1000.0  # Hz (higher precision IMU)
+  frame_id: "imu_link"
+
+  # IMU sensor properties
+  imu:
+    # Accelerometer properties
+    accelerometer:
+      resolution: 0.0001      # Higher resolution (m/s²)
+      range: 78.453           # Range of accelerometer (+/- 8g) (m/s²)
+      noise_density: 0.0006   # Very low noise density (m/s²/√Hz)
+      random_walk: 0.000017   # Very low random walk (m/s²/√Hz)
+      bias_correlation_time: 7200.0
+      turn_on_bias: 0.0001    # Very low turn-on bias (m/s²)
+
+    # Gyroscope properties
+    gyroscope:
+      resolution: 0.00001     # Higher resolution (rad/s)
+      range: 8.727            # Range of gyroscope (+/- rad/s) (±500 deg/s)
+      noise_density: 0.00006  # Very low noise density (rad/s/√Hz)
+      random_walk: 0.000006   # Very low random walk (rad/s/√Hz)
+      bias_correlation_time: 7200.0
+      turn_on_bias: 0.00001   # Very low turn-on bias (rad/s)
+
+    # Magnetometer properties
+    magnetometer:
+      resolution: 0.0001e-6   # Higher resolution (T)
+      range: 1.3e-5           # Range of magnetometer (+/- T)
+      noise_density: 0.0015e-6 # Very low noise density (T/√Hz)
+      random_walk: 0.0005e-6  # Very low random walk (T/√Hz)
+      bias_correlation_time: 7200.0
+      turn_on_bias: 0.001e-6  # Very low turn-on bias (T)
+
+  # Noise model
+  noise:
+    type: "realistic_imu"
+    parameters:
+      accel_noise_density: 0.0006
+      accel_random_walk: 0.000017
+      gyro_noise_density: 0.00006
+      gyro_random_walk: 0.000006
+      accel_bias_correlation_time: 7200.0
+      gyro_bias_correlation_time: 7200.0
+
+  # Sensor placement
+  pose:
+    position:
+      x: 0.0
+      y: 0.0
+      z: 0.85
+    orientation:
+      roll: 0.0
+      pitch: 0.0
+      yaw: 0.0
+
+# Consumer-grade IMU configuration (lower cost/performance)
+consumer_imu:
+  name: "humanoid_consumer_imu"
+  type: "imu"
+  update_rate: 50.0   # Hz (lower update rate for consumer IMU)
+  frame_id: "imu_link"
+
+  # IMU sensor properties
+  imu:
+    # Accelerometer properties
+    accelerometer:
+      resolution: 0.01        # Lower resolution (m/s²)
+      range: 39.226           # Range of accelerometer (+/- 4g) (m/s²)
+      noise_density: 0.083    # Higher noise density (m/s²/√Hz)
+      random_walk: 0.005      # Higher random walk (m/s²/√Hz)
+      bias_correlation_time: 1800.0
+      turn_on_bias: 0.01      # Higher turn-on bias (m/s²)
+
+    # Gyroscope properties
+    gyroscope:
+      resolution: 0.001       # Standard resolution (rad/s)
+      range: 34.907           # Range of gyroscope (+/- rad/s) (±2000 deg/s)
+      noise_density: 0.012    # Higher noise density (rad/s/√Hz)
+      random_walk: 0.0012     # Higher random walk (rad/s/√Hz)
+      bias_correlation_time: 1800.0
+      turn_on_bias: 0.002     # Higher turn-on bias (rad/s)
+
+    # Magnetometer properties
+    magnetometer:
+      resolution: 0.01e-6     # Lower resolution (T)
+      range: 1.3e-5           # Range of magnetometer (+/- T)
+      noise_density: 0.15e-6  # Higher noise density (T/√Hz)
+      random_walk: 0.05e-6    # Higher random walk (T/√Hz)
+      bias_correlation_time: 1800.0
+      turn_on_bias: 0.1e-6    # Higher turn-on bias (T)
+
+  # Noise model
+  noise:
+    type: "realistic_imu"
+    parameters:
+      accel_noise_density: 0.083
+      accel_random_walk: 0.005
+      gyro_noise_density: 0.012
+      gyro_random_walk: 0.0012
+      accel_bias_correlation_time: 1800.0
+      gyro_bias_correlation_time: 1800.0
+
+  # Sensor placement
+  pose:
+    position:
+      x: 0.0
+      y: 0.0
+      z: 0.85
+    orientation:
+      roll: 0.0
+      pitch: 0.0
+      yaw: 0.0
+
+# Foot-mounted IMU configuration (for locomotion analysis)
+foot_imu:
+  name: "humanoid_foot_imu"
+  type: "imu"
+  update_rate: 200.0  # Hz (higher for foot contact detection)
+  frame_id: "left_foot_imu_link"
+
+  # IMU sensor properties optimized for foot contact detection
+  imu:
+    # Accelerometer properties
+    accelerometer:
+      resolution: 0.001       # Standard resolution (m/s²)
+      range: 78.453           # Higher range for impact detection (m/s²)
+      noise_density: 0.017    # Standard noise density (m/s²/√Hz)
+      random_walk: 0.0006     # Standard random walk (m/s²/√Hz)
+      bias_correlation_time: 3600.0
+      turn_on_bias: 0.001     # Standard turn-on bias (m/s²)
+
+    # Gyroscope properties
+    gyroscope:
+      resolution: 0.001       # Standard resolution (rad/s)
+      range: 17.453           # Higher range for foot rotation (rad/s) (±1000 deg/s)
+      noise_density: 0.006    # Standard noise density (rad/s/√Hz)
+      random_walk: 0.0006     # Standard random walk (rad/s/√Hz)
+      bias_correlation_time: 3600.0
+      turn_on_bias: 0.001     # Standard turn-on bias (rad/s)
+
+  # Noise model
+  noise:
+    type: "realistic_imu"
+    parameters:
+      accel_noise_density: 0.017
+      accel_random_walk: 0.0006
+      gyro_noise_density: 0.006
+      gyro_random_walk: 0.0006
+      accel_bias_correlation_time: 3600.0
+      gyro_bias_correlation_time: 3600.0
+
+  # Sensor placement (mounted on foot)
+  pose:
+    position:
+      x: 0.05               # Position in front of ankle (meters)
+      y: 0.0
+      z: -0.05              # Position below ankle (meters)
+    orientation:
+      roll: 0.0
+      pitch: 0.0
+      yaw: 0.0
+
+# Sensor plugin configuration for Gazebo
+sensor_plugins:
+  gazebo_ros_imu:
+    plugin_name: "libgazebo_ros_imu.so"
+    ros:
+      topics:
+        - name: "/humanoid/imu/data"
+          type: "sensor_msgs/Imu"
+        - name: "/humanoid/imu/mag"
+          type: "sensor_msgs/MagneticField"
+      frame_id: "imu_link"
+    update_rate: 100.0
+    body_name: "imu_mount_link"
+    topic_name: "/humanoid/imu/data"
+    service_name: "/humanoid/imu/calibrate"
+    always_on: true
+    update_rate: 100.0
+    gaussian_noise: 0.0017

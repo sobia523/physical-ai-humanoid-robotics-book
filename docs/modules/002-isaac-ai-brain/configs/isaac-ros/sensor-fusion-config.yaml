@@ -1,0 +1,548 @@
+# Isaac ROS Sensor Fusion Configuration
+# Configuration file for multi-sensor fusion system optimized for humanoid robots
+
+sensor_fusion_system:
+  name: "humanoid_sensor_fusion_pipeline"
+  description: "Multi-sensor fusion pipeline for humanoid robot localization and mapping"
+  version: "1.0"
+  author: "Isaac ROS Developer"
+  license: "Apache 2.0"
+
+# Global pipeline settings
+global:
+  # Enable profiling for performance monitoring
+  enable_profiling: true
+  # Log level for pipeline nodes
+  log_level: "INFO"
+  # Maximum processing delay allowed (seconds)
+  max_processing_delay: 0.05
+  # Enable detailed performance metrics
+  enable_metrics: true
+
+# Node definitions for the sensor fusion pipeline
+nodes:
+  # 1. Camera input and preprocessing
+  - name: "camera_input"
+    package: "isaac_ros_image_transport"
+    executable: "image_subscriber_node"
+    namespace: "front_camera"
+    parameters:
+      # Input topic for raw camera images
+      image_topic: "/front_camera/image_raw"
+      # Camera calibration information
+      camera_info_topic: "/front_camera/camera_info"
+      # Quality of Service settings for real-time performance
+      qos_override: true
+      qos_history: "keep_last"
+      qos_depth: 10
+      qos_reliability: "reliable"
+      qos_durability: "volatile"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Memory pool for camera data
+      memory_pool_size: "512MB"
+
+  # 2. LiDAR input and preprocessing
+  - name: "lidar_input"
+    package: "sensor_msgs_py"
+    executable: "pointcloud2_subscriber"
+    parameters:
+      # Input point cloud topic
+      input_topic: "/lidar/points"
+      # Quality of Service settings
+      qos_history: "keep_last"
+      qos_depth: 5
+      qos_reliability: "reliable"
+      qos_durability: "volatile"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      memory_pool_size: "1024MB"
+
+  # 3. IMU input
+  - name: "imu_input"
+    package: "sensor_msgs_py"
+    executable: "imu_subscriber"
+    parameters:
+      # Input IMU topic
+      input_topic: "/imu/data"
+      # Quality of Service settings
+      qos_history: "keep_last"
+      qos_depth: 20
+      qos_reliability: "reliable"
+      qos_durability: "volatile"
+
+  # 4. Odometry input (if available)
+  - name: "odometry_input"
+    package: "nav_msgs_py"
+    executable: "odometry_subscriber"
+    parameters:
+      # Input odometry topic
+      input_topic: "/odom"
+      # Quality of Service settings
+      qos_history: "keep_last"
+      qos_depth: 10
+      qos_reliability: "reliable"
+      qos_durability: "volatile"
+
+  # 5. Camera preprocessing
+  - name: "camera_preprocessing"
+    package: "isaac_ros_image_proc"
+    executable: "image_preprocessor_node"
+    parameters:
+      # Input from camera
+      input_image_topic: "/front_camera/image_raw"
+      input_camera_info_topic: "/front_camera/camera_info"
+      # Output processed image
+      output_image_topic: "/front_camera/image_processed"
+      output_camera_info_topic: "/front_camera/camera_info_processed"
+      # Preprocessing settings
+      undistort_image: true
+      rectify_image: true
+      resize_image: true
+      resized_width: 640
+      resized_height: 480
+      # Hardware acceleration
+      use_gpu: true
+      gpu_id: 0
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 10
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      tensorrt_precision: "fp16"  # Half precision for speed
+      enable_memory_pooling: true
+
+  # 6. LiDAR preprocessing
+  - name: "lidar_preprocessing"
+    package: "isaac_ros_pointcloud_utils"
+    executable: "preprocessor_node"
+    parameters:
+      # Input from LiDAR
+      input_topic: "/lidar/points"
+      # Output processed point cloud
+      output_topic: "/lidar/points_processed"
+      # Preprocessing parameters
+      use_gpu: true
+      gpu_id: 0
+      min_range: 0.5  # meters
+      max_range: 100.0  # meters
+      min_height: -2.0  # meters
+      max_height: 5.0  # meters
+      remove_ground: true
+      # Ground estimator parameters
+      ground_estimator_points: 100
+      ground_estimator_max_iterations: 100
+      ground_estimator_distance_threshold: 0.2
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 5
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 5
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for point cloud operations
+      enable_memory_pooling: true
+
+  # 7. Visual feature extraction
+  - name: "visual_feature_extraction"
+    package: "isaac_ros_visual_slam"
+    executable: "feature_detector_node"
+    parameters:
+      # Input from preprocessed camera
+      input_image_topic: "/front_camera/image_processed"
+      # Output features
+      output_features_topic: "/sensor_fusion/visual_features"
+      # Feature detection parameters
+      detector_type: "orb"  # Options: orb, sift, akaze, fast
+      max_features: 1000
+      matching_threshold: 0.7
+      # Hardware acceleration
+      use_gpu: true
+      gpu_id: 0
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 10
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for feature detection
+      max_batch_size: 1
+
+  # 8. LiDAR feature extraction
+  - name: "lidar_feature_extraction"
+    package: "isaac_ros_cluster_segmentation"
+    executable: "lidar_feature_extractor_node"
+    parameters:
+      # Input from processed LiDAR
+      input_topic: "/lidar/points_processed"
+      # Output LiDAR features
+      output_features_topic: "/sensor_fusion/lidar_features"
+      # Feature extraction parameters
+      use_gpu: true
+      gpu_id: 0
+      feature_types: ["normal", "curvature", "intensity"]
+      neighborhood_size: 10
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 5
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 10
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for point cloud feature extraction
+      enable_memory_pooling: true
+
+  # 9. Multi-sensor fusion
+  - name: "multi_sensor_fusion"
+    package: "isaac_ros_fusion"
+    executable: "fusion_node"
+    parameters:
+      # Input topics for fusion
+      visual_features_topic: "/sensor_fusion/visual_features"
+      lidar_features_topic: "/sensor_fusion/lidar_features"
+      imu_topic: "/imu/data"
+      odom_topic: "/odom"
+      # Output fused data
+      output_fused_data_topic: "/sensor_fusion/fused_data"
+      # Fusion parameters
+      use_gpu: true
+      gpu_id: 0
+      fusion_method: "probabilistic"
+      max_fusion_distance: 2.0  # meters
+      temporal_window: 0.1  # seconds
+      confidence_threshold: 0.6
+      enable_motion_compensation: true
+      # Sensor weights for fusion
+      sensor_weights:
+        camera: 0.4
+        lidar: 0.4
+        imu: 0.2
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 10
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for fusion algorithms
+      enable_memory_pooling: true
+
+  # 10. Extended Kalman Filter for sensor fusion
+  - name: "ekf_sensor_fusion"
+    package: "isaac_ros_ekf"
+    executable: "ekf_node"
+    parameters:
+      # Input topics for EKF
+      sensor_inputs:
+        - topic: "/sensor_fusion/fused_data"
+          type: "pose_with_covariance"
+          weight: 0.8
+        - topic: "/imu/data"
+          type: "imu"
+          weight: 0.2
+        - topic: "/odom"
+          type: "odometry"
+          weight: 0.5
+      # Output fused pose
+      output_pose_topic: "/sensor_fusion/ekf_pose"
+      # EKF parameters
+      process_noise:
+        position: 0.1
+        velocity: 0.01
+        acceleration: 0.001
+      measurement_noise:
+        position: 0.01
+        orientation: 0.01
+        linear_velocity: 0.01
+        angular_velocity: 0.01
+      # Initial state covariance
+      initial_covariance:
+        position: 0.1
+        orientation: 0.1
+        linear_velocity: 0.1
+        angular_velocity: 0.1
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 20
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 10
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for EKF computations
+      enable_cuda_graphs: true
+
+  # 11. Pose graph optimization
+  - name: "pose_graph_optimization"
+    package: "isaac_ros_pose_graph_optimization"
+    executable: "pose_graph_optimizer_node"
+    parameters:
+      # Input poses for optimization
+      input_poses_topic: "/sensor_fusion/ekf_pose"
+      # Output optimized poses
+      output_optimized_poses_topic: "/sensor_fusion/optimized_poses"
+      # Loop closure detection
+      loop_closure_topic: "/sensor_fusion/loop_closure"
+      # Optimization parameters
+      use_gpu: true
+      gpu_id: 0
+      max_iterations: 100
+      convergence_threshold: 1e-6
+      robust_kernel: "huber"  # Options: huber, cauchy, tukey
+      # Graph optimization settings
+      optimizer_type: "g2o"  # Options: g2o, ceres
+      enable_online_optimization: true
+      optimization_frequency: 1.0  # Hz
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 10
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for graph optimization
+      enable_memory_pooling: true
+
+  # 12. Semantic segmentation for enhanced fusion
+  - name: "semantic_segmentation"
+    package: "isaac_ros_segformer"
+    executable: "segformer_node"
+    parameters:
+      # Input from preprocessed camera
+      input_image_topic: "/front_camera/image_processed"
+      # Output segmentation
+      output_segmentation_topic: "/sensor_fusion/semantic_segmentation"
+      # Model configuration
+      model_path: "/models/segformer_planar_encoder.plan"
+      class_labels_path: "/models/coco_labels.txt"
+      input_width: 640
+      input_height: 480
+      # Hardware acceleration
+      use_gpu: true
+      gpu_id: 0
+      tensorrt_precision: "fp16"
+      tensorrt_engine_cache: "/tmp/tensorrt_cache"
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 10
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      tensorrt_precision: "fp16"
+      # Optimize for segmentation
+      max_batch_size: 1
+
+# GPU-specific configuration
+gpu_config:
+  # Default GPU to use
+  default_gpu_id: 0
+  # Memory pool size for GPU operations
+  memory_pool_size: "8192MB"
+  # CUDA stream priority
+  cuda_stream_priority: "normal"
+  # TensorRT cache size for optimized models
+  tensorrt_cache_size: "2048MB"
+  # Enable memory pooling for better performance
+  enable_memory_pooling: true
+  # Enable unified memory (set to false for compatibility)
+  enable_unified_memory: false
+  # Enable CUDA graphs for kernel fusion
+  enable_cuda_graphs: true
+
+# Performance optimization settings
+performance:
+  # Maximum input queue size for each node
+  max_input_queue_size: 10
+  # Maximum output queue size for each node
+  max_output_queue_size: 10
+  # Enable pipeline profiling for performance analysis
+  enable_pipeline_profiling: true
+  # Enable GPU memory profiling
+  enable_gpu_memory_profiling: true
+  # Target frame rate for the pipeline (Hz)
+  target_frame_rate: 20  # Limited by sensor fusion complexity
+  # Processing timeout (seconds)
+  processing_timeout: 0.05
+  # Enable adaptive processing based on computational load
+  enable_adaptive_processing: true
+  # Maximum processing load threshold (0.0 to 1.0)
+  max_load_threshold: 0.8
+  # Multi-sensor synchronization settings
+  sensor_synchronization:
+    enable_synchronization: true
+    max_time_diff: 0.05  # seconds
+    sync_method: "approximate_time"
+
+# Monitoring and diagnostics
+monitoring:
+  # Enable detailed logging
+  enable_detailed_logging: false
+  # Log level
+  log_level: "INFO"
+  # Enable performance metrics collection
+  enable_performance_metrics: true
+  # File to save performance metrics
+  metrics_output_file: "/tmp/sensor_fusion_metrics.json"
+  # Enable GPU monitoring
+  enable_gpu_monitoring: true
+  # GPU metrics collection interval (seconds)
+  gpu_monitoring_interval: 1.0
+  # Sensor fusion specific monitoring
+  fusion_accuracy_monitoring: true
+  sensor_health_monitoring: true
+  multi_sensor_synchronization_monitoring: true
+
+# Hardware-specific configurations
+hardware_profiles:
+  # For Jetson AGX Orin (balanced performance)
+  jetson_agx_orin:
+    gpu_config:
+      default_gpu_id: 0
+      memory_pool_size: "4096MB"
+      tensorrt_cache_size: "1024MB"
+    performance:
+      target_frame_rate: 15
+      max_load_threshold: 0.7
+    nodes:
+      visual_feature_extraction:
+        max_features: 500
+      multi_sensor_fusion:
+        fusion_method: "weighted_average"  # Simpler fusion for resource constraint
+
+  # For desktop RTX 3080 (high performance)
+  desktop_rtx_3080:
+    gpu_config:
+      default_gpu_id: 0
+      memory_pool_size: "12288MB"
+      tensorrt_cache_size: "3072MB"
+    performance:
+      target_frame_rate: 30
+      max_load_threshold: 0.9
+    nodes:
+      visual_feature_extraction:
+        max_features: 2000
+      multi_sensor_fusion:
+        fusion_method: "probabilistic"
+
+# Sensor calibration and transformation settings
+calibration:
+  # Camera intrinsic calibration file
+  camera_intrinsics: "/calibration/front_camera_intrinsics.yaml"
+  # Camera extrinsic calibration (position/orientation relative to robot)
+  camera_extrinsics: "/calibration/camera_to_base.yaml"
+  # LiDAR extrinsic calibration
+  lidar_extrinsics: "/calibration/lidar_to_base.yaml"
+  # IMU extrinsic calibration
+  imu_extrinsics: "/calibration/imu_to_base.yaml"
+  # TF tree configuration
+  tf_tree: "/calibration/sensor_fusion_tf_tree.yaml"
+
+# Synchronization settings
+synchronization:
+  # Camera-LiDAR synchronization
+  camera_lidar_sync:
+    max_time_diff: 0.05  # seconds
+    sync_method: "approximate_time"
+    queue_size: 10
+  # Multi-sensor synchronization
+  multi_sensor_sync:
+    max_time_diff: 0.02  # seconds
+    sync_method: "approximate_time"
+    queue_size: 20
+  # IMU-camera synchronization
+  imu_camera_sync:
+    max_time_diff: 0.01  # seconds
+    sync_method: "approximate_time"
+    queue_size: 10
+
+# Launch configuration
+launch_config:
+  # Launch container for all sensor fusion nodes
+  container_name: "sensor_fusion_container"
+  # Use multi-threaded executor
+  executor_type: "multi_threaded"
+  # Number of threads for the executor
+  executor_threads: 8  # More threads for multi-sensor processing
+  # Composable node container settings
+  container_composable: true
+  # Output destination for container
+  container_output: "screen"
+
+# Fusion strategy settings
+fusion_strategies:
+  # Visual-LiDAR fusion
+  visual_lidar_fusion:
+    enable: true
+    method: "complementary"
+    visual_weight: 0.6
+    lidar_weight: 0.4
+    fusion_frequency: 10.0  # Hz
+
+  # Visual-Inertial fusion
+  visual_inertial_fusion:
+    enable: true
+    method: "tight_coupling"
+    visual_weight: 0.7
+    imu_weight: 0.3
+    fusion_frequency: 100.0  # Hz (IMU is high frequency)
+
+  # Multi-modal fusion
+  multi_modal_fusion:
+    enable: true
+    method: "bayesian"
+    confidence_threshold: 0.5
+    outlier_rejection: true
+    adaptive_weights: true
+
+# Example usage commands:
+#
+# 1. Launch the complete sensor fusion pipeline:
+#    ros2 launch sensor_fusion_pipeline.launch.py
+#
+# 2. Launch with specific hardware profile:
+#    ros2 launch sensor_fusion_pipeline.launch.py hardware_profile:=desktop_rtx_3080
+#
+# 3. Monitor GPU usage during operation:
+#    nvidia-smi -l 1
+#
+# 4. Visualize sensor fusion outputs:
+#    ros2 run rviz2 rviz2 -d sensor_fusion_visualization.rviz

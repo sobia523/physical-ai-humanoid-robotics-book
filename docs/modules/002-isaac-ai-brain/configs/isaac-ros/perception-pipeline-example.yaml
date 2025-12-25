@@ -1,0 +1,493 @@
+# Isaac ROS Complete Perception Pipeline Example
+# Demonstrates hardware acceleration for humanoid robot perception
+
+# This example pipeline integrates multiple sensors with GPU acceleration
+# to provide comprehensive perception capabilities for humanoid robots
+
+pipeline:
+  name: "humanoid_perception_pipeline"
+  description: "Complete GPU-accelerated perception pipeline for humanoid robots"
+  version: "1.0"
+  author: "Isaac ROS Developer"
+  license: "Apache 2.0"
+
+# Global pipeline configuration
+global:
+  # Enable profiling for performance monitoring
+  enable_profiling: true
+  # Log level for pipeline nodes
+  log_level: "INFO"
+  # Maximum processing delay allowed (seconds)
+  max_processing_delay: 0.1
+  # Enable detailed performance metrics
+  enable_metrics: true
+
+# Node definitions for the perception pipeline
+nodes:
+  # 1. Camera input and preprocessing
+  - name: "camera_input"
+    package: "isaac_ros_image_transport"
+    executable: "image_subscriber_node"
+    namespace: "front_camera"
+    parameters:
+      # Input topic for raw camera images
+      image_topic: "/front_camera/image_raw"
+      # Camera calibration information
+      camera_info_topic: "/front_camera/camera_info"
+      # Quality of Service settings for real-time performance
+      qos_override: true
+      qos_history: "keep_last"
+      qos_depth: 10
+      qos_reliability: "reliable"
+      qos_durability: "volatile"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Memory pool for camera data
+      memory_pool_size: "512MB"
+
+  # 2. Camera image rectification using GPU
+  - name: "camera_rectification"
+    package: "isaac_ros_image_proc"
+    executable: "rectification_node"
+    parameters:
+      # Input from camera
+      input_image_topic: "/front_camera/image_raw"
+      input_camera_info_topic: "/front_camera/camera_info"
+      # Output rectified image
+      output_image_topic: "/front_camera/image_rect"
+      output_camera_info_topic: "/front_camera/camera_info_rect"
+      # Use GPU for rectification
+      use_gpu: true
+      gpu_id: 0
+      # Performance settings
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 10
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      tensorrt_precision: "fp16"  # Half precision for speed
+      enable_memory_pooling: true
+
+  # 3. GPU-accelerated object detection
+  - name: "object_detection"
+    package: "isaac_ros_detectnet"
+    executable: "detectnet_node"
+    parameters:
+      # Input from rectified camera
+      input_image_topic: "/front_camera/image_rect"
+      # Output detections
+      output_detections_topic: "/perception/detections"
+      # Model and labels
+      model_path: "/models/resnet18_detector.plan"
+      class_labels_path: "/models/coco_labels.txt"
+      # Detection thresholds
+      confidence_threshold: 0.7
+      input_width: 1280
+      input_height: 720
+      # Hardware acceleration
+      use_gpu: true
+      gpu_id: 0
+      tensorrt_precision: "fp16"
+      tensorrt_engine_cache: "/tmp/tensorrt_cache"
+      # Performance optimization
+      enable_profiling: false
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 10
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      tensorrt_precision: "fp16"
+      tensorrt_engine_cache: "/tmp/tensorrt_cache"
+      # Optimize for inference
+      max_batch_size: 1
+
+  # 4. GPU-accelerated semantic segmentation
+  - name: "semantic_segmentation"
+    package: "isaac_ros_segformer"
+    executable: "segformer_node"
+    parameters:
+      # Input from rectified camera
+      input_image_topic: "/front_camera/image_rect"
+      # Output segmentation mask
+      output_segmentation_topic: "/perception/segmentation"
+      # Model configuration
+      model_path: "/models/segformer_model.plan"
+      class_labels_path: "/models/cityscapes_labels.txt"
+      input_width: 640
+      input_height: 480
+      # Hardware acceleration
+      use_gpu: true
+      gpu_id: 0
+      tensorrt_precision: "fp16"
+      tensorrt_engine_cache: "/tmp/tensorrt_cache"
+      # Performance settings
+      enable_profiling: false
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 10
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      tensorrt_precision: "fp16"
+      # Optimize for segmentation
+      max_batch_size: 1
+
+  # 5. LiDAR input and preprocessing
+  - name: "lidar_input"
+    package: "sensor_msgs_py"
+    executable: "pointcloud2_subscriber"
+    parameters:
+      # Input point cloud topic
+      input_topic: "/lidar/points"
+      # Quality of Service settings
+      qos_history: "keep_last"
+      qos_depth: 5
+      qos_reliability: "reliable"
+      qos_durability: "volatile"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      memory_pool_size: "1024MB"
+
+  # 6. GPU-accelerated LiDAR preprocessing
+  - name: "lidar_preprocessing"
+    package: "isaac_ros_pointcloud_utils"
+    executable: "preprocessor_node"
+    parameters:
+      # Input from LiDAR
+      input_topic: "/lidar/points"
+      # Output processed point cloud
+      output_topic: "/lidar/points_processed"
+      # Processing parameters
+      use_gpu: true
+      gpu_id: 0
+      min_range: 0.5  # meters
+      max_range: 100.0  # meters
+      min_height: -2.0  # meters
+      max_height: 5.0  # meters
+      remove_ground: true
+      # Ground plane estimation parameters
+      ground_estimator_points: 100
+      ground_estimator_max_iterations: 100
+      ground_estimator_distance_threshold: 0.2
+      # Quality of Service
+      input_qos_history: "keep_last"
+      input_qos_depth: 5
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 5
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for point cloud operations
+      enable_memory_pooling: true
+
+  # 7. GPU-accelerated clustering for object detection
+  - name: "lidar_clustering"
+    package: "isaac_ros_cluster_segmentation"
+    executable: "euclidean_cluster_node"
+    parameters:
+      # Input from preprocessed LiDAR
+      input_topic: "/lidar/points_processed"
+      # Output clusters
+      output_clusters_topic: "/lidar/clusters"
+      # Clustering parameters
+      use_gpu: true
+      gpu_id: 0
+      cluster_tolerance: 0.5  # meters
+      min_cluster_size: 10  # points
+      max_cluster_size: 25000  # points
+      # Quality of Service
+      input_qos_history: "keep_last"
+      input_qos_depth: 5
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 10
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for clustering algorithms
+      enable_memory_pooling: true
+
+  # 8. GPU-accelerated 3D object detection
+  - name: "lidar_object_detection"
+    package: "isaac_ros_detectnet_3d"
+    executable: "lidar_detectnet_node"
+    parameters:
+      # Input from clustered points
+      input_pointcloud_topic: "/lidar/points_processed"
+      # Output 3D detections
+      output_detections_topic: "/lidar/detections_3d"
+      # Model configuration
+      model_path: "/models/lidar_detectnet_model.plan"
+      class_labels_path: "/models/lidar_class_labels.txt"
+      # Hardware acceleration
+      use_gpu: true
+      gpu_id: 0
+      tensorrt_precision: "fp16"
+      tensorrt_engine_cache: "/tmp/tensorrt_cache"
+      # Detection parameters
+      min_detection_score: 0.5
+      max_detections: 100
+      # Quality of Service
+      input_qos_history: "keep_last"
+      input_qos_depth: 5
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 10
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      tensorrt_precision: "fp16"
+      # Optimize for 3D detection
+      max_batch_size: 1
+
+  # 9. Multi-sensor fusion
+  - name: "sensor_fusion"
+    package: "isaac_ros_fusion"
+    executable: "fusion_node"
+    parameters:
+      # Input topics for fusion
+      camera_detections_topic: "/perception/detections"
+      lidar_detections_topic: "/lidar/detections_3d"
+      # Output fused detections
+      output_fused_detections_topic: "/perception/fused_detections"
+      # IMU and odometry for motion compensation
+      imu_topic: "/imu/data"
+      odom_topic: "/odom"
+      # Fusion parameters
+      use_gpu: true
+      gpu_id: 0
+      fusion_method: "probabilistic"
+      max_fusion_distance: 2.0  # meters
+      temporal_window: 0.1  # seconds
+      confidence_threshold: 0.6
+      enable_motion_compensation: true
+      # Quality of Service
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 10
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for fusion algorithms
+      enable_memory_pooling: true
+
+  # 10. GPU-accelerated tracking
+  - name: "object_tracking"
+    package: "isaac_ros_tracking"
+    executable: "tracking_node"
+    parameters:
+      # Input from fused detections
+      input_detections_topic: "/perception/fused_detections"
+      # Output tracks
+      output_tracks_topic: "/perception/tracks"
+      # Tracking parameters
+      use_gpu: true
+      gpu_id: 0
+      tracker_type: "kalman_filter"
+      max_association_distance: 3.0  # meters
+      max_track_age: 10.0  # seconds
+      min_track_age: 0.5  # seconds
+      max_num_tracks: 100
+      enable_reidentification: true
+      # Quality of Service
+      input_qos_history: "keep_last"
+      input_qos_depth: 10
+      input_qos_reliability: "reliable"
+      output_qos_history: "keep_last"
+      output_qos_depth: 10
+      output_qos_reliability: "reliable"
+    # Hardware acceleration settings
+    hardware_config:
+      use_gpu: true
+      gpu_id: 0
+      # Optimize for tracking algorithms
+      enable_memory_pooling: true
+
+# GPU-specific configuration
+gpu_config:
+  # Default GPU to use
+  default_gpu_id: 0
+  # Memory pool size for GPU operations
+  memory_pool_size: "4096MB"
+  # CUDA stream priority
+  cuda_stream_priority: "normal"
+  # TensorRT cache size for optimized models
+  tensorrt_cache_size: "2048MB"
+  # Enable memory pooling for better performance
+  enable_memory_pooling: true
+  # Enable unified memory (set to false for compatibility)
+  enable_unified_memory: false
+
+# Performance optimization settings
+performance:
+  # Maximum input queue size for each node
+  max_input_queue_size: 10
+  # Maximum output queue size for each node
+  max_output_queue_size: 10
+  # Enable pipeline profiling for performance analysis
+  enable_pipeline_profiling: true
+  # Enable GPU memory profiling
+  enable_gpu_memory_profiling: true
+  # Target frame rate for the pipeline (Hz)
+  target_frame_rate: 30
+  # Processing timeout (seconds)
+  processing_timeout: 0.1
+  # Enable CUDA graphs for performance (if supported)
+  enable_cuda_graphs: true
+
+# Monitoring and diagnostics
+monitoring:
+  # Enable detailed logging
+  enable_detailed_logging: false
+  # Log level
+  log_level: "INFO"
+  # Enable performance metrics collection
+  enable_performance_metrics: true
+  # File to save performance metrics
+  metrics_output_file: "/tmp/humanoid_perception_metrics.json"
+  # Enable GPU monitoring
+  enable_gpu_monitoring: true
+  # GPU metrics collection interval (seconds)
+  gpu_monitoring_interval: 1.0
+
+# Hardware-specific configurations
+hardware_profiles:
+  # For Jetson Xavier NX (power-constrained)
+  jetson_xavier_nx:
+    gpu_config:
+      default_gpu_id: 0
+      memory_pool_size: "2048MB"
+      tensorrt_cache_size: "512MB"
+    performance:
+      target_frame_rate: 15
+      max_num_tracks: 50
+    nodes:
+      object_detection:
+        input_width: 640
+        input_height: 480
+      semantic_segmentation:
+        input_width: 320
+        input_height: 240
+
+  # For Jetson AGX Orin (balanced performance)
+  jetson_agx_orin:
+    gpu_config:
+      default_gpu_id: 0
+      memory_pool_size: "4096MB"
+      tensorrt_cache_size: "1024MB"
+    performance:
+      target_frame_rate: 30
+      max_num_tracks: 100
+    nodes:
+      object_detection:
+        input_width: 1280
+        input_height: 720
+      semantic_segmentation:
+        input_width: 640
+        input_height: 480
+
+  # For desktop RTX 3080 (high performance)
+  desktop_rtx_3080:
+    gpu_config:
+      default_gpu_id: 0
+      memory_pool_size: "8192MB"
+      tensorrt_cache_size: "2048MB"
+    performance:
+      target_frame_rate: 60
+      max_num_tracks: 200
+    nodes:
+      object_detection:
+        input_width: 1920
+        input_height: 1080
+      semantic_segmentation:
+        input_width: 1280
+        input_height: 720
+
+# Sensor synchronization settings
+synchronization:
+  # Camera-LiDAR synchronization
+  camera_lidar_sync:
+    max_time_diff: 0.05  # seconds
+    sync_method: "approximate_time"
+    queue_size: 10
+
+  # Multiple LiDAR synchronization (if using multiple LiDARs)
+  multi_lidar_sync:
+    max_time_diff: 0.01  # seconds
+    sync_method: "exact_time"
+    queue_size: 5
+
+  # IMU-camera synchronization
+  imu_camera_sync:
+    max_time_diff: 0.01  # seconds
+    sync_method: "approximate_time"
+    queue_size: 10
+
+# Calibration and transformation settings
+calibration:
+  # Camera-LiDAR extrinsics calibration file
+  camera_lidar_extrinsics: "/calibration/camera_lidar_extrinsics.yaml"
+  # Camera intrinsics calibration file
+  camera_intrinsics: "/calibration/camera_intrinsics.yaml"
+  # LiDAR extrinsics calibration file
+  lidar_extrinsics: "/calibration/lidar_extrinsics.yaml"
+  # IMU extrinsics calibration file
+  imu_extrinsics: "/calibration/imu_extrinsics.yaml"
+  # TF tree configuration
+  tf_tree: "/calibration/tf_tree.yaml"
+
+# Launch configuration
+launch_config:
+  # Launch container for all perception nodes
+  container_name: "perception_container"
+  # Use multi-threaded executor
+  executor_type: "multi_threaded"
+  # Number of threads for the executor
+  executor_threads: 4
+  # Composable node container settings
+  container_composable: true
+  # Output destination for container
+  container_output: "screen"
+
+# Example usage commands:
+#
+# 1. Launch the complete perception pipeline:
+#    ros2 launch perception_pipeline_example.launch.py
+#
+# 2. Launch with specific hardware profile:
+#    ros2 launch perception_pipeline_example.launch.py hardware_profile:=jetson_agx_orin
+#
+# 3. Monitor GPU usage during operation:
+#    nvidia-smi -l 1
+#
+# 4. Visualize perception outputs:
+#    ros2 run rviz2 rviz2 -d perception_visualization.rviz

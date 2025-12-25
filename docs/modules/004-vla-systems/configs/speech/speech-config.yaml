@@ -1,0 +1,269 @@
+# Speech Recognition Configuration for VLA Systems
+
+## Overview
+
+This configuration file defines the settings and parameters for speech recognition components in Vision-Language-Action (VLA) systems. These configurations control how voice input is processed, recognized, and converted into text for further processing in the VLA pipeline.
+
+## Audio Input Configuration
+
+### Microphone Settings
+```yaml
+audio_input:
+  device_index: 0                    # Index of the primary microphone device
+  sample_rate: 16000                 # Audio sampling rate in Hz
+  chunk_size: 1024                   # Size of audio chunks for processing
+  format: "int16"                    # Audio sample format
+  channels: 1                        # Number of audio channels (mono)
+  input_timeout: 5.0                 # Timeout for audio input in seconds
+  silence_threshold: 500             # Threshold for detecting silence
+```
+
+### Noise Reduction
+```yaml
+noise_reduction:
+  enable: true                       # Enable noise reduction algorithms
+  noise_floor: 200                   # Baseline noise level
+  suppression_level: 0.8             # Amount of noise suppression (0.0-1.0)
+  adaptive_filter: true              # Use adaptive noise filtering
+  echo_cancellation: true            # Enable echo cancellation
+  dereverberation: true              # Apply dereverberation algorithms
+```
+
+## Speech Recognition Engine Configuration
+
+### OpenAI Whisper Settings
+```yaml
+whisper:
+  model: "base"                      # Whisper model size (tiny, base, small, medium, large)
+  language: "en"                     # Target language code (en, es, fr, etc.)
+  temperature: 0.0                   # Temperature for sampling (0.0-1.0)
+  compression_ratio_threshold: 2.4   # Threshold for detecting garbled input
+  logprob_threshold: -1.0            # Log probability threshold for valid text
+  no_speech_threshold: 0.6           # Threshold for no-speech detection
+  vad_filter: true                   # Enable voice activity detection filter
+  initial_prompt: ""                 # Optional initial prompt for recognition
+  condition_on_previous_text: true   # Condition on previous text for continuity
+```
+
+### Google Speech-to-Text Settings
+```yaml
+google_speech:
+  enable: false                      # Enable Google Speech-to-Text API
+  credentials_file: ""               # Path to Google service account credentials
+  sample_rate_hertz: 16000           # Audio sample rate for Google API
+  language_code: "en-US"             # Language code for recognition
+  enable_automatic_punctuation: true # Add punctuation to recognized text
+  enable_word_time_offsets: false    # Include word timing information
+  profanity_filter: true             # Filter profanity from output
+  speech_contexts:
+    - phrases: []                    # List of context phrases to bias recognition
+      boost: 0.0                     # Boost factor for context phrases (0.0-20.0)
+```
+
+### Local Speech Recognition (Mozilla DeepSpeech)
+```yaml
+deepspeech:
+  enable: false                      # Enable local DeepSpeech recognition
+  model_path: ""                     # Path to DeepSpeech model file (.tflite)
+  scorer_path: ""                    # Path to DeepSpeech scorer file (.scorer)
+  beam_width: 500                    # Beam width for decoding
+  sample_rate: 16000                 # Expected audio sample rate
+  audio_gain: 1.0                    # Audio gain multiplier
+```
+
+## Voice Activity Detection (VAD)
+
+### VAD Configuration
+```yaml
+vad:
+  enable: true                       # Enable voice activity detection
+  aggressiveness: 3                  # Aggressiveness level (0-3, higher = more aggressive)
+  min_silence_duration_ms: 500       # Minimum silence duration to trigger end of speech
+  speech_pad_ms: 30                  # Padding around detected speech segments
+  silence_padding: 500               # Additional silence before triggering end of speech
+```
+
+## Recognition Parameters
+
+### General Recognition Settings
+```yaml
+recognition:
+  max_alternatives: 1                # Maximum number of alternative transcripts
+  profanity_filter: true             # Filter profanity from recognition results
+  enable_automatic_punctuation: true # Add punctuation to recognized text
+  enable_separate_recognition_per_utterance: true  # Separate recognition per utterance
+  timeout: 30.0                      # Maximum time to wait for recognition (seconds)
+  max_audio_duration: 60.0           # Maximum duration of audio to process (seconds)
+  interim_results: true              # Return interim results during recognition
+  single_utterance: false            # Stop after first utterance detected
+```
+
+### Confidence and Quality Settings
+```yaml
+quality:
+  min_confidence: 0.5                # Minimum confidence threshold for valid recognition
+  confidence_boost: 1.0              # Multiplier for confidence scores
+  rejection_threshold: 0.3           # Threshold below which results are rejected
+  confidence_calibration: true       # Enable confidence score calibration
+  quality_threshold: 0.7             # Minimum quality score for acceptance
+```
+
+## Real-time Processing Settings
+
+### Buffer Management
+```yaml
+buffering:
+  input_buffer_size: 4096            # Size of input audio buffer
+  processing_delay: 100              # Processing delay in milliseconds
+  overlap_duration: 20               # Overlap duration for continuous processing (ms)
+  silence_duration: 1000             # Duration of silence to trigger end of speech (ms)
+  min_recognition_duration: 200      # Minimum duration for valid recognition (ms)
+```
+
+### Performance Optimization
+```yaml
+performance:
+  use_gpu: true                      # Use GPU acceleration when available
+  num_threads: 4                     # Number of threads for processing
+  max_concurrent_requests: 1         # Maximum concurrent recognition requests
+  memory_limit_mb: 1024              # Memory limit for recognition engine (MB)
+  cpu_usage_limit: 80                # Maximum CPU usage percentage
+```
+
+## Error Handling and Fallbacks
+
+### Error Recovery Settings
+```yaml
+error_handling:
+  retry_attempts: 3                  # Number of retry attempts on failure
+  retry_delay: 1.0                   # Delay between retry attempts (seconds)
+  fallback_enabled: true             # Enable fallback recognition methods
+  fallback_engine: "deepspeech"      # Fallback recognition engine
+  error_logging: true                # Enable detailed error logging
+  timeout_recovery: true             # Recover from timeout errors
+```
+
+## Integration with ROS 2
+
+### ROS 2 Topic Configuration
+```yaml
+ros2_integration:
+  audio_input_topic: "/audio_input"  # Topic for audio input data
+  speech_text_topic: "/speech_text"  # Topic for recognized text output
+  confidence_topic: "/speech_confidence"  # Topic for confidence scores
+  command_topic: "/voice_command"    # Topic for processed voice commands
+  status_topic: "/speech_status"     # Topic for speech recognition status
+  service_name: "/start_recognition" # Service to start/stop recognition
+```
+
+### Message Types and QoS
+```yaml
+ros2_qos:
+  audio_qos:
+    history: "keep_last"             # History policy for audio messages
+    depth: 10                        # Queue depth for audio messages
+    reliability: "reliable"          # Reliability policy for audio
+    durability: "volatile"           # Durability policy for audio
+  text_qos:
+    history: "keep_last"             # History policy for text messages
+    depth: 100                       # Queue depth for text messages
+    reliability: "reliable"          # Reliability policy for text
+    durability: "volatile"           # Durability policy for text
+```
+
+## Privacy and Security
+
+### Data Handling
+```yaml
+privacy:
+  local_processing_only: false       # Process all audio locally (disables cloud services)
+  data_retention_hours: 24           # Hours to retain audio data for debugging
+  encryption_enabled: true           # Encrypt audio data in transit
+  anonymization: true                # Anonymize data where possible
+  consent_required: true             # Require consent for processing
+```
+
+## Environment-Specific Configurations
+
+### Indoor Environment Settings
+```yaml
+indoor_config:
+  noise_floor: 150                   # Lower noise floor for quiet indoor environments
+  sensitivity: 0.7                   # Sensitivity level for indoor use (0.0-1.0)
+  echo_cancellation: true            # Enable echo cancellation for indoor environments
+  reverberation_time: 0.3            # Estimated reverberation time in seconds
+```
+
+### Outdoor Environment Settings
+```yaml
+outdoor_config:
+  noise_floor: 800                   # Higher noise floor for outdoor environments
+  sensitivity: 0.9                   # Higher sensitivity for outdoor use
+  wind_filter: true                  # Enable wind noise filtering
+  echo_cancellation: false           # Disable echo cancellation outdoors
+  compression_enabled: true          # Enable audio compression for outdoor
+```
+
+## Custom Commands and Vocabulary
+
+### Command Vocabulary
+```yaml
+vocabulary:
+  custom_words:                      # Custom vocabulary for better recognition
+    - "robot"
+    - "navigation"
+    - "manipulation"
+    - "perception"
+    - "action"
+    - "stop"
+    - "start"
+    - "help"
+    - "emergency"
+    - "shutdown"
+  command_phrases:                   # Specific command phrases to recognize
+    - "move forward"
+    - "turn left"
+    - "turn right"
+    - "pick up"
+    - "place down"
+    - "go to"
+    - "bring me"
+    - "clean"
+    - "follow me"
+    - "wait"
+```
+
+## Calibration Settings
+
+### Initial Calibration
+```yaml
+calibration:
+  ambient_noise_samples: 50          # Number of samples for ambient noise calibration
+  calibration_duration: 2.0          # Duration for initial calibration (seconds)
+  sensitivity_adjustment: 0.1        # Adjustment factor for sensitivity
+  automatic_calibration: true        # Perform automatic calibration on startup
+  calibration_file: "calibration.json"  # File to store calibration data
+```
+
+## Advanced Configuration
+
+### Whisper Model Fine-tuning
+```yaml
+whisper_finetuning:
+  use_finetuned_model: false         # Use a fine-tuned Whisper model
+  finetuned_model_path: ""           # Path to fine-tuned model
+  domain_adaptation: true            # Enable domain-specific adaptation
+  personalization_enabled: false     # Enable speaker-specific personalization
+  adaptation_samples: 100            # Number of samples for personalization
+```
+
+### Performance Monitoring
+```yaml
+monitoring:
+  enable_metrics: true               # Enable performance metrics collection
+  metrics_topic: "/speech_metrics"   # Topic for performance metrics
+  latency_threshold: 2.0             # Threshold for latency alerts (seconds)
+  accuracy_threshold: 0.8            # Threshold for accuracy alerts
+  resource_monitoring: true          # Monitor resource usage
+  log_performance: true              # Log performance metrics
+```

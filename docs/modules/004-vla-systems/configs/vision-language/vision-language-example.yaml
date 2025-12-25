@@ -1,0 +1,301 @@
+# Example Vision-Language Integration Pipeline
+
+vision_language_pipeline:
+  # Pipeline configuration for vision-language integration
+  pipeline:
+    # Input processing stage
+    input_processing:
+      # Visual input
+      visual_input:
+        source: "/camera/rgb/image_raw"
+        message_type: "sensor_msgs/Image"
+        qos_profile: "best_effort"
+        frame_rate: 10  # Hz
+
+      # Language input
+      language_input:
+        source: "/natural_language_input"
+        message_type: "std_msgs/String"
+        qos_profile: "reliable"
+        buffer_size: 10
+
+      # Synchronization
+      synchronization:
+        enabled: true
+        sync_method: "approximate_time"
+        max_interval: 0.1  # seconds
+
+    # Vision processing stage
+    vision_processing:
+      # Object detection
+      object_detection:
+        model: "yolov8x-seg.pt"
+        confidence_threshold: 0.5
+        nms_threshold: 0.4
+        max_detections: 100
+        device: "cuda"
+
+      # Feature extraction
+      feature_extraction:
+        backbone: "resnet50"
+        layers: ["layer3", "layer4"]
+        output_dim: 2048
+
+      # Scene understanding
+      scene_understanding:
+        scene_graph_generation: true
+        relationship_detection: true
+        spatial_reasoning: true
+
+    # Language processing stage
+    language_processing:
+      # Text preprocessing
+      text_preprocessing:
+        tokenizer: "bert-base-uncased"
+        max_length: 512
+        lowercase: true
+
+      # Language model
+      language_model:
+        model: "bert-base-uncased"
+        pooling_strategy: "cls"
+        output_dim: 768
+
+      # Entity and relation extraction
+      nlp_processing:
+        entity_recognition: true
+        relation_extraction: true
+        dependency_parsing: true
+
+    # Cross-modal processing
+    cross_modal_processing:
+      # Attention mechanism
+      attention:
+        type: "scaled_dot_product"
+        num_heads: 8
+        hidden_dim: 512
+        dropout: 0.1
+
+      # Fusion strategy
+      fusion:
+        method: "concatenation"
+        fusion_layer: "multimodal_transformer"
+        fusion_dim: 1024
+
+      # Grounding
+      grounding:
+        method: "cross_attention"
+        similarity_metric: "cosine"
+        grounding_threshold: 0.3
+        top_k: 5
+
+    # Uncertainty processing
+    uncertainty_processing:
+      # Visual uncertainty
+      visual_uncertainty:
+        detection_uncertainty: "ensemble_variance"
+        classification_uncertainty: "softmax_entropy"
+        uncertainty_threshold: 0.8
+
+      # Language uncertainty
+      language_uncertainty:
+        parsing_ambiguity: "multiple_dependency_trees"
+        semantic_ambiguity: "word_sense_disambiguation"
+        uncertainty_threshold: 0.7
+
+      # Combined uncertainty
+      combined_uncertainty:
+        fusion_method: "product"
+        decision_threshold: 0.6
+        fallback_strategy: "request_clarification"
+
+    # Output processing
+    output_processing:
+      # Grounded objects output
+      grounded_objects:
+        topic: "/vision_language/grounded_objects"
+        message_type: "vision_language_msgs/GroundedObjects"
+        qos_profile: "reliable"
+
+      # Scene graph output
+      scene_graph:
+        topic: "/vision_language/scene_graph"
+        message_type: "vision_language_msgs/SceneGraph"
+        qos_profile: "reliable"
+
+      # Visual queries output
+      visual_queries:
+        topic: "/vision_language/visual_queries"
+        message_type: "vision_language_msgs/VisualQueries"
+        qos_profile: "reliable"
+
+      # Uncertainty estimates
+      uncertainty_output:
+        topic: "/vision_language/uncertainty"
+        message_type: "std_msgs/Float32MultiArray"
+        qos_profile: "reliable"
+
+  # Integration settings
+  integration:
+    # ROS 2 topics for communication
+    ros_topics:
+      # Input topics
+      input:
+        image_input: "/camera/rgb/image_raw"
+        language_input: "/natural_language_input"
+
+      # Output topics
+      output:
+        grounded_objects: "/vision_language/grounded_objects"
+        scene_graph: "/vision_language/scene_graph"
+        visual_queries: "/vision_language/visual_queries"
+        uncertainty: "/vision_language/uncertainty"
+
+      # Service topics
+      services:
+        get_scene_graph: "/vision_language/get_scene_graph"
+        query_objects: "/vision_language/query_objects"
+        get_grounding: "/vision_language/get_grounding"
+
+    # Action server integration
+    action_servers:
+      execute_vision_task: "/vision_language/execute_task"
+      perform_visual_query: "/vision_language/perform_query"
+
+  # Performance settings
+  performance:
+    # Processing optimization
+    optimization:
+      # Batch processing
+      batching:
+        vision_batch_size: 1
+        language_batch_size: 8
+        max_batch_time: 0.1  # seconds
+
+      # Caching
+      caching:
+        enabled: true
+        object_cache_size: 1000
+        scene_graph_cache_size: 100
+        embedding_cache_size: 500
+        cache_ttl: 300  # seconds
+
+      # Memory management
+      memory:
+        max_cache_memory: "2GB"
+        gpu_memory_fraction: 0.8
+        cpu_memory_limit: "4GB"
+
+    # Real-time constraints
+    real_time:
+      max_processing_time: 0.1  # seconds per frame
+      target_frame_rate: 10  # Hz
+      latency_budget: 0.05  # seconds
+
+  # Safety and validation
+  safety:
+    # Validation settings
+    validation:
+      validate_object_detection: true
+      validate_language_parsing: true
+      validate_grounding_results: true
+      max_objects_per_frame: 50
+
+    # Safety constraints
+    constraints:
+      allowed_object_classes: ["person", "cup", "bottle", "chair", "table", "sofa", "bed", "toilet", "tv", "laptop", "mouse", "remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"]
+      forbidden_actions: ["self_modification", "system_shutdown"]
+      safety_zones: ["safe_zone_1", "safe_zone_2"]
+
+    # Emergency procedures
+    emergency:
+      emergency_stop_topic: "/emergency_stop"
+      safe_position_topic: "/safe_position"
+      error_recovery_enabled: true
+
+  # Monitoring and logging
+  monitoring:
+    # Logging settings
+    logging:
+      enabled: true
+      log_level: "INFO"
+      sensitive_data_filtering: true
+      log_vision_data: false  # Set to true only for debugging
+
+    # Metrics collection
+    metrics:
+      collect_performance_metrics: true
+      collect_accuracy_metrics: true
+      collect_uncertainty_metrics: true
+      collect_failure_rates: true
+      metrics_export_interval: 60  # seconds
+
+  # Error handling and recovery
+  error_handling:
+    # Vision processing errors
+    vision_errors:
+      object_detection_failure: "use_contextual_knowledge"
+      low_confidence_detections: "request_visual_clarification"
+      no_objects_detected: "use_environmental_context"
+
+    # Language processing errors
+    language_errors:
+      parsing_ambiguity: "request_clarification"
+      unknown_entities: "use_common_sense_reasoning"
+      syntax_errors: "fallback_to_keyword_matching"
+
+    # Grounding errors
+    grounding_errors:
+      poor_grounding: "use_temporal_consistency"
+      multiple_groundings: "request_disambiguation"
+      no_grounding_found: "use_generic_action"
+
+    # Recovery strategies
+    recovery_strategies:
+      - strategy: "fallback_to_simpler_task"
+        description: "Reduce task complexity when uncertain"
+      - strategy: "request_human_assistance"
+        description: "Ask for human help when needed"
+      - strategy: "abort_and_report"
+        description: "Stop execution and report error"
+
+  # Configuration parameters
+  parameters:
+    # Confidence thresholds
+    confidence_thresholds:
+      object_detection: 0.5
+      language_grounding: 0.3
+      scene_understanding: 0.6
+
+    # Processing parameters
+    processing_params:
+      max_objects: 100
+      max_tokens: 512
+      max_relationships: 200
+
+    # Timeout settings
+    timeouts:
+      vision_processing: 0.5  # seconds
+      language_processing: 0.2  # seconds
+      grounding_processing: 0.3  # seconds
+      total_pipeline: 1.0  # seconds
+
+  # Example usage scenarios
+  usage_scenarios:
+    # Object identification scenario
+    object_identification:
+      input: "Find the red cup on the table"
+      expected_output: "GroundedObjects message with red cup location"
+      confidence_threshold: 0.7
+
+    # Scene understanding scenario
+    scene_understanding:
+      input: "Describe the living room"
+      expected_output: "SceneGraph with objects and relationships"
+      confidence_threshold: 0.6
+
+    # Visual query scenario
+    visual_query:
+      input: "Are there any books near the lamp?"
+      expected_output: "Boolean result with supporting evidence"
+      confidence_threshold: 0.8

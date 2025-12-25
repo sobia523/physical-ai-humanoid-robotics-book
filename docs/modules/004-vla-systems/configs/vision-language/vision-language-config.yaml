@@ -1,0 +1,225 @@
+# Vision-Language Integration Configuration
+
+vision_language:
+  # Vision processing configuration
+  vision:
+    # Object detection settings
+    object_detection:
+      model: "yolov8x-seg.pt"  # or "yolov5l", "faster_rcnn", etc.
+      confidence_threshold: 0.5
+      nms_threshold: 0.4
+      max_detections: 100
+      device: "cuda"  # or "cpu"
+
+    # Feature extraction
+    feature_extraction:
+      backbone: "resnet50"
+      output_layers: ["layer3", "layer4"]
+      feature_dim: 2048
+
+    # Scene understanding
+    scene_understanding:
+      scene_graph_generator: "transformer"
+      relationship_detector: "spatial_attention"
+      spatial_relationships: ["left", "right", "above", "below", "near", "far", "on", "in", "next_to"]
+
+    # Visual grounding
+    visual_grounding:
+      grounding_model: "clip"
+      text_encoder: "bert-base-uncased"
+      visual_encoder: "resnet50"
+      grounding_threshold: 0.3
+
+  # Language processing configuration
+  language:
+    # Text preprocessing
+    preprocessing:
+      tokenizer: "bert-base-uncased"
+      max_length: 512
+      lowercase: true
+      remove_punctuation: false
+
+    # Language model
+    model:
+      name: "bert-base-uncased"  # or "roberta-base", "albert-base-v2", etc.
+      pooling_strategy: "cls"
+      hidden_size: 768
+
+    # Entity and relation extraction
+    nlp_components:
+      entity_recognizer: "spacy/en_core_web_sm"
+      relation_extractor: "openie"
+      dependency_parser: "spacy"
+      pos_tagger: "spacy"
+
+  # Cross-modal integration
+  cross_modal:
+    # Attention mechanisms
+    attention:
+      type: "scaled_dot_product"
+      num_heads: 8
+      hidden_dim: 512
+      dropout: 0.1
+
+    # Fusion strategies
+    fusion:
+      method: "concatenation"  # or "addition", "multiplication", "attention"
+      fusion_layer: "multimodal_transformer"
+      fusion_dim: 1024
+
+    # Grounding strategies
+    grounding:
+      method: "cross_attention"
+      similarity_metric: "cosine"
+      grounding_threshold: 0.3
+      top_k_grounding: 5
+
+  # Uncertainty management
+  uncertainty:
+    # Visual uncertainty
+    visual_uncertainty:
+      detection_uncertainty: "ensemble_variance"
+      classification_uncertainty: "softmax_entropy"
+      uncertainty_threshold: 0.8
+
+    # Language uncertainty
+    language_uncertainty:
+      parsing_ambiguity: "multiple_dependency_trees"
+      semantic_ambiguity: "word_sense_disambiguation"
+      uncertainty_threshold: 0.7
+
+    # Combined uncertainty
+    combined_uncertainty:
+      fusion_method: "product"
+      decision_threshold: 0.6
+      fallback_strategy: "request_clarification"
+
+  # Performance optimization
+  performance:
+    # Caching settings
+    caching:
+      enabled: true
+      object_cache_size: 1000
+      scene_graph_cache_size: 100
+      embedding_cache_size: 500
+      cache_ttl: 300  # seconds
+
+    # Batch processing
+    batching:
+      vision_batch_size: 1
+      language_batch_size: 8
+      max_batch_time: 0.1  # seconds
+
+    # Memory management
+    memory:
+      max_cache_memory: "2GB"
+      gpu_memory_fraction: 0.8
+      cpu_memory_limit: "4GB"
+
+  # Integration with ROS 2
+  ros_integration:
+    # Topic configuration
+    topics:
+      # Input topics
+      image_input: "/camera/rgb/image_raw"
+      depth_input: "/camera/depth/image_raw"
+      language_input: "/natural_language_input"
+
+      # Output topics
+      grounded_objects: "/vision_language/grounded_objects"
+      scene_graph: "/vision_language/scene_graph"
+      visual_queries: "/vision_language/visual_queries"
+      uncertainty_estimates: "/vision_language/uncertainty"
+
+    # Message types
+    message_types:
+      image: "sensor_msgs/Image"
+      grounded_objects: "vision_language_msgs/GroundedObjects"
+      scene_graph: "vision_language_msgs/SceneGraph"
+      visual_queries: "vision_language_msgs/VisualQueries"
+      uncertainty: "std_msgs/Float32MultiArray"
+
+    # QoS settings
+    qos:
+      image_input:
+        reliability: "best_effort"
+        durability: "volatile"
+        history: "keep_last"
+        depth: 1
+      language_input:
+        reliability: "reliable"
+        durability: "volatile"
+        history: "keep_last"
+        depth: 10
+      output_topics:
+        reliability: "reliable"
+        durability: "volatile"
+        history: "keep_last"
+        depth: 10
+
+  # Safety and validation
+  safety:
+    # Validation settings
+    validation:
+      validate_object_detection: true
+      validate_language_parsing: true
+      validate_grounding_results: true
+      max_objects_per_frame: 50
+
+    # Safety constraints
+    constraints:
+      allowed_object_classes: ["person", "cup", "bottle", "chair", "table", "sofa", "bed", "toilet", "tv", "laptop", "mouse", "remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"]
+      forbidden_actions: ["self_modification", "system_shutdown"]
+      safety_zones: ["safe_zone_1", "safe_zone_2"]
+
+    # Emergency procedures
+    emergency:
+      emergency_stop_topic: "/emergency_stop"
+      safe_position_topic: "/safe_position"
+      error_recovery_enabled: true
+
+  # Monitoring and logging
+  monitoring:
+    # Logging settings
+    logging:
+      enabled: true
+      log_level: "INFO"
+      sensitive_data_filtering: true
+      log_vision_data: false  # Set to true only for debugging
+
+    # Metrics collection
+    metrics:
+      collect_performance_metrics: true
+      collect_accuracy_metrics: true
+      collect_uncertainty_metrics: true
+      collect_failure_rates: true
+      metrics_export_interval: 60  # seconds
+
+  # Error handling and recovery
+  error_handling:
+    # Vision processing errors
+    vision_errors:
+      object_detection_failure: "use_contextual_knowledge"
+      low_confidence_detections: "request_visual_clarification"
+      no_objects_detected: "use_environmental_context"
+
+    # Language processing errors
+    language_errors:
+      parsing_ambiguity: "request_clarification"
+      unknown_entities: "use_common_sense_reasoning"
+      syntax_errors: "fallback_to_keyword_matching"
+
+    # Grounding errors
+    grounding_errors:
+      poor_grounding: "use_temporal_consistency"
+      multiple_groundings: "request_disambiguation"
+      no_grounding_found: "use_generic_action"
+
+    # Recovery strategies
+    recovery_strategies:
+      - strategy: "fallback_to_simpler_task"
+        description: "Reduce task complexity when uncertain"
+      - strategy: "request_human_assistance"
+        description: "Ask for human help when needed"
+      - strategy: "abort_and_report"
+        description: "Stop execution and report error"

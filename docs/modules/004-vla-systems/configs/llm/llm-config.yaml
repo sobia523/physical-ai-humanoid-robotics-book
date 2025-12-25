@@ -1,0 +1,164 @@
+# LLM Configuration for Cognitive Planning in VLA Systems
+
+llm_planning:
+  # Primary LLM configuration
+  primary_model:
+    name: "gpt-4-turbo"  # or "claude-3-opus", "llama-2-70b", etc.
+    api_key: "YOUR_API_KEY_HERE"  # Use environment variable in production
+    temperature: 0.3  # Lower for more deterministic planning
+    max_tokens: 2048  # For generating detailed action sequences
+    timeout: 30  # seconds
+
+  # Alternative models for redundancy
+  alternative_models:
+    - name: "gpt-3.5-turbo"
+      temperature: 0.4
+      max_tokens: 1024
+      priority: 2
+    - name: "claude-3-sonnet"
+      temperature: 0.3
+      max_tokens: 1536
+      priority: 3
+
+  # Planning-specific settings
+  planning:
+    # Template for goal decomposition
+    goal_decomposition_template: |
+      You are a cognitive planning system for a humanoid robot. Decompose the following high-level goal into a sequence of executable actions.
+
+      GOAL: {goal}
+      ENVIRONMENT: {environment_context}
+      ROBOT_CAPABILITIES: {robot_capabilities}
+      CURRENT_STATE: {current_state}
+
+      Provide the plan as a structured sequence of actions in the following format:
+      1. [ACTION_NAME] - [PARAMETERS] - [SUCCESS_CRITERIA]
+      2. [ACTION_NAME] - [PARAMETERS] - [SUCCESS_CRITERIA]
+
+      Consider environmental constraints, safety requirements, and robot limitations.
+
+    # Validation settings
+    validation:
+      enable_action_validation: true
+      validate_against_robot_capabilities: true
+      safety_check_enabled: true
+      plan_complexity_threshold: 50  # Max number of actions in a single plan
+
+    # Retry settings
+    retry_policy:
+      max_retries: 3
+      retry_delay: 1.0  # seconds
+      exponential_backoff: true
+
+  # Context management
+  context:
+    # Maximum context window to maintain
+    max_context_window: 4096  # tokens
+    # History to maintain for ongoing tasks
+    conversation_history:
+      max_turns: 20
+      include_environment_state: true
+      include_robot_state: true
+
+    # Memory settings
+    short_term_memory:
+      enabled: true
+      duration: 300  # seconds
+    long_term_memory:
+      enabled: false
+      storage_path: "/memory/long_term"
+      retention_period: 86400  # seconds (24 hours)
+
+  # Performance optimization
+  performance:
+    # Caching settings
+    caching:
+      enabled: true
+      cache_validity: 300  # seconds
+      cache_similar_queries: true
+
+    # Batching settings
+    batching:
+      enabled: false
+      max_batch_size: 5
+      batch_timeout: 10  # seconds
+
+  # Safety and constraints
+  safety:
+    # Content filtering
+    content_filter:
+      enabled: true
+      filter_threshold: 0.8  # 0.0 to 1.0 scale
+
+    # Execution constraints
+    execution_constraints:
+      allowed_actions: ["navigation", "manipulation", "perception", "communication"]
+      forbidden_actions: ["self_modification", "system_shutdown"]
+      maximum_execution_time: 300  # seconds per plan
+      safety_validation_required: true
+
+  # Monitoring and logging
+  monitoring:
+    # Logging settings
+    logging:
+      enabled: true
+      log_level: "INFO"
+      sensitive_data_filtering: true
+
+    # Metrics collection
+    metrics:
+      collect_performance_metrics: true
+      collect_success_rate: true
+      collect_planning_time: true
+      metrics_export_interval: 60  # seconds
+
+  # Integration with ROS 2
+  ros_integration:
+    # Topic settings
+    topics:
+      goal_input: "/cognitive_planning/goal"
+      plan_output: "/cognitive_planning/plan"
+      status_feedback: "/cognitive_planning/status"
+      error_output: "/cognitive_planning/errors"
+
+    # Service settings
+    services:
+      get_plan: "/cognitive_planning/get_plan"
+      validate_plan: "/cognitive_planning/validate_plan"
+      cancel_plan: "/cognitive_planning/cancel_plan"
+
+    # Action server settings
+    action_servers:
+      execute_plan: "/cognitive_planning/execute_plan"
+      monitor_execution: "/cognitive_planning/monitor_execution"
+
+  # Error handling
+  error_handling:
+    # Fallback strategies
+    fallback_strategies:
+      - strategy: "simplified_plan"
+        description: "Generate a simpler plan with fewer steps"
+      - strategy: "human_intervention"
+        description: "Request human assistance"
+      - strategy: "abort_and_report"
+        description: "Stop execution and report error"
+
+    # Recovery settings
+    recovery:
+      auto_recovery_enabled: true
+      max_recovery_attempts: 3
+      recovery_delay: 2.0  # seconds
+
+  # Customization options
+  customization:
+    # Domain-specific knowledge
+    domain_knowledge:
+      robot_type: "humanoid"
+      environment_type: "indoor"
+      primary_tasks: ["navigation", "manipulation", "assistance"]
+
+    # Personalization
+    personalization:
+      user_preferences_enabled: true
+      learning_enabled: true
+      adaptation_rate: 0.1  # Learning rate for adaptation

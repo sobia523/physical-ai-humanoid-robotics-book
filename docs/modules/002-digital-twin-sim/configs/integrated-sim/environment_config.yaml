@@ -1,0 +1,143 @@
+# Environment Configuration for Humanoid Robot Simulation
+
+world_settings:
+  name: "humanoid_navigation"
+  gravity: [0.0, 0.0, -9.8]
+  magnetic_field: [0.5, 0.0, 0.5]  # In local magnetic field coordinates
+
+environment_objects:
+  static_objects:
+    - name: "table"
+      type: "furniture"
+      pose: [5.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      dimensions: [1.5, 0.8, 0.8]
+      collision: true
+      visual: true
+
+    - name: "chair"
+      type: "furniture"
+      pose: [2.0, -2.0, 0.0, 0.0, 0.0, 0.0]
+      dimensions: [0.6, 0.6, 0.8]
+      collision: true
+      visual: true
+
+  dynamic_objects:
+    - name: "moving_object"
+      type: "movable"
+      initial_pose: [-3.0, 2.0, 0.0, 0.0, 0.0, 0.0]
+      dimensions: [0.4, 0.4, 0.5]
+      movement_pattern: "circular"
+      movement_parameters:
+        center: [-3.0, 2.0, 0.0]
+        radius: 1.0
+        speed: 0.2
+      collision: true
+      visual: true
+
+  navigation_goals:
+    - name: "main_goal"
+      pose: [8.0, 3.0, 0.0, 0.0, 0.0, 0.0]
+      type: "waypoint"
+      radius: 0.3
+      priority: 1
+
+    - name: "secondary_goal"
+      pose: [-5.0, -3.0, 0.0, 0.0, 0.0, 0.0]
+      type: "waypoint"
+      radius: 0.3
+      priority: 2
+
+lighting:
+  ambient_light: [0.5, 0.5, 0.5, 1.0]
+  sun:
+    direction: [-0.3, -0.3, -1.0]
+    diffuse: [0.8, 0.8, 0.8, 1.0]
+    specular: [0.2, 0.2, 0.2, 1.0]
+  shadows: true
+
+physics_properties:
+  ground_plane:
+    friction: [0.8, 0.8]
+    restitution: 0.01
+    material: "asphalt"
+
+  object_materials:
+    default:
+      friction: [0.6, 0.6]
+      restitution: 0.1
+    furniture:
+      friction: [0.7, 0.7]
+      restitution: 0.05
+
+sensors_simulation:
+  lidar:
+    noise_model: "gaussian"
+    noise_parameters:
+      mean: 0.0
+      std_dev: 0.01
+    multipath_effects: true
+    beam_divergence: 0.001
+
+  imu:
+    noise_model: "realistic"
+    noise_parameters:
+      accelerometer:
+        noise_density: 0.017
+        random_walk: 0.0006
+      gyroscope:
+        noise_density: 0.006
+        random_walk: 0.0006
+
+  camera:
+    noise_model: "poisson"
+    noise_parameters:
+      lambda: 0.1
+    distortion:
+      k1: 0.0
+      k2: 0.0
+      k3: 0.0
+      p1: 0.0
+      p2: 0.0
+
+simulation_scenarios:
+  default_scenario:
+    name: "basic_navigation"
+    description: "Basic navigation with static and dynamic obstacles"
+    start_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    target_pose: [8.0, 3.0, 0.0, 0.0, 0.0, 0.0]
+    duration_limit: 300  # seconds
+
+  challenge_scenario:
+    name: "dynamic_obstacles"
+    description: "Navigation with moving obstacles"
+    start_pose: [-8.0, -3.0, 0.0, 0.0, 0.0, 0.0]
+    target_pose: [8.0, 3.0, 0.0, 0.0, 0.0, 0.0]
+    duration_limit: 600  # seconds
+
+  benchmark_scenario:
+    name: "performance_test"
+    description: "Performance benchmark with multiple robots"
+    start_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    target_pose: [8.0, 3.0, 0.0, 0.0, 0.0, 0.0]
+    duration_limit: 180  # seconds
+
+visualization:
+  show_lidar_rays: false
+  show_collision_bounds: false
+  show_velocity_vectors: false
+  trail_display: true
+  trail_length: 100
+
+logging:
+  enable_sensor_logging: true
+  enable_robot_state_logging: true
+  enable_performance_logging: true
+  log_directory: "/tmp/humanoid_simulation_logs"
+  log_format: "csv"
+  log_frequency: 10.0  # Hz
+
+safety_limits:
+  maximum_velocity: 1.0  # m/s
+  maximum_angular_velocity: 1.0  # rad/s
+  minimum_distance_to_obstacles: 0.3  # m
+  maximum_tilt_angle: 0.5  # rad (about 28 degrees)

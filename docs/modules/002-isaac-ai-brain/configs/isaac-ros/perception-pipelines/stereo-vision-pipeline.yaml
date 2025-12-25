@@ -1,0 +1,155 @@
+# Isaac ROS Stereo Vision Pipeline Configuration
+# Configuration for GPU-accelerated stereo vision processing
+
+pipeline:
+  name: "stereo_vision_pipeline"
+  description: "GPU-accelerated stereo vision pipeline for depth estimation and 3D reconstruction"
+
+nodes:
+  # Left camera image subscriber
+  - name: "left_image_subscriber"
+    package: "isaac_ros_image_transport"
+    executable: "image_subscriber_node"
+    namespace: "left_camera"
+    parameters:
+      - image_topic: "/left_camera/image_raw"
+      - camera_info_topic: "/left_camera/camera_info"
+      - qos_override: true
+      - qos_history: "keep_last"
+      - qos_depth: 10
+      - qos_reliability: "reliable"
+      - qos_durability: "volatile"
+
+  # Right camera image subscriber
+  - name: "right_image_subscriber"
+    package: "isaac_ros_image_transport"
+    executable: "image_subscriber_node"
+    namespace: "right_camera"
+    parameters:
+      - image_topic: "/right_camera/image_raw"
+      - camera_info_topic: "/right_camera/camera_info"
+      - qos_override: true
+      - qos_history: "keep_last"
+      - qos_depth: 10
+      - qos_reliability: "reliable"
+      - qos_durability: "volatile"
+
+  # GPU-accelerated stereo rectification
+  - name: "stereo_rectification"
+    package: "isaac_ros_stereo_rectification"
+    executable: "stereo_rectification_node"
+    parameters:
+      - left_rectified_topic: "/left_camera/rectified_image"
+      - right_rectified_topic: "/right_camera/rectified_image"
+      - calibration_file: "/path/to/stereo_calibration.yaml"
+      - use_gpu: true
+      - gpu_id: 0
+      - image_width: 1280
+      - image_height: 720
+      - output_qos_history: "keep_last"
+      - output_qos_depth: 10
+      - output_qos_reliability: "reliable"
+      - output_qos_durability: "volatile"
+
+  # GPU-accelerated stereo depth estimation
+  - name: "stereo_depth_estimation"
+    package: "isaac_ros_stereo_dnn"
+    executable: "stereo_dnn_node"
+    parameters:
+      - left_image_topic: "/left_camera/rectified_image"
+      - right_image_topic: "/right_camera/rectified_image"
+      - disparity_topic: "/stereo/disparity"
+      - depth_topic: "/stereo/depth"
+      - model_path: "/models/stereo_depth_model.plan"
+      - input_width: 1280
+      - input_height: 720
+      - max_disparity: 256
+      - use_gpu: true
+      - gpu_id: 0
+      - tensorrt_precision: "fp16"
+      - tensorrt_engine_cache: "/tmp/tensorrt_cache"
+      - enable_profiling: false
+      - input_qos_history: "keep_last"
+      - input_qos_depth: 10
+      - input_qos_reliability: "reliable"
+      - input_qos_durability: "volatile"
+      - output_qos_history: "keep_last"
+      - output_qos_depth: 10
+      - output_qos_reliability: "reliable"
+      - output_qos_durability: "volatile"
+
+  # GPU-accelerated point cloud generation
+  - name: "point_cloud_generator"
+    package: "isaac_ros_stereo_image_proc"
+    executable: "point_cloud_node"
+    parameters:
+      - left_topic: "/left_camera/rectified_image"
+      - right_topic: "/right_camera/rectified_image"
+      - left_info_topic: "/left_camera/camera_info"
+      - right_info_topic: "/right_camera/camera_info"
+      - disparity_topic: "/stereo/disparity"
+      - point_cloud_topic: "/stereo/point_cloud"
+      - use_gpu: true
+      - gpu_id: 0
+      - queue_size: 10
+      - output_frame_id: "stereo_camera"
+      - input_qos_history: "keep_last"
+      - input_qos_depth: 10
+      - input_qos_reliability: "reliable"
+      - input_qos_durability: "volatile"
+      - output_qos_history: "keep_last"
+      - output_qos_depth: 10
+      - output_qos_reliability: "reliable"
+      - output_qos_durability: "volatile"
+
+  # GPU-accelerated object detection
+  - name: "object_detector"
+    package: "isaac_ros_detectnet"
+    executable: "detectnet_node"
+    parameters:
+      - input_image_topic: "/left_camera/rectified_image"
+      - output_detections_topic: "/detections"
+      - model_path: "/models/detectnet_model.plan"
+      - class_labels_path: "/models/class_labels.txt"
+      - confidence_threshold: 0.7
+      - input_width: 1280
+      - input_height: 720
+      - use_gpu: true
+      - gpu_id: 0
+      - tensorrt_precision: "fp16"
+      - tensorrt_engine_cache: "/tmp/tensorrt_cache"
+      - enable_profiling: false
+      - input_qos_history: "keep_last"
+      - input_qos_depth: 10
+      - input_qos_reliability: "reliable"
+      - input_qos_durability: "volatile"
+      - output_qos_history: "keep_last"
+      - output_qos_depth: 10
+      - output_qos_reliability: "reliable"
+      - output_qos_durability: "volatile"
+
+gpu_settings:
+  # Global GPU settings for the pipeline
+  default_gpu_id: 0
+  memory_pool_size: "2048MB"
+  cuda_stream_priority: "normal"
+  tensorrt_cache_size: "512MB"
+  enable_memory_pooling: true
+  enable_unified_memory: false  # Set to true for systems with unified memory support
+
+performance:
+  # Performance optimization settings
+  max_input_queue_size: 10
+  max_output_queue_size: 10
+  enable_pipeline_profiling: false
+  enable_gpu_memory_profiling: false
+  target_frame_rate: 30  # FPS
+  processing_timeout: 0.1  # seconds
+
+monitoring:
+  # Monitoring and logging settings
+  enable_detailed_logging: false
+  log_level: "INFO"
+  enable_performance_metrics: true
+  metrics_output_file: "/tmp/stereo_pipeline_metrics.json"
+  enable_gpu_monitoring: true
