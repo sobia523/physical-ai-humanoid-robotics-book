@@ -23,13 +23,13 @@ const ModuleCards = () => {
       id: 'module-3',
       title: 'Module 3: The AI-Robot Brain (NVIDIA Isaac™)',
       description: 'AI processing and decision-making for humanoid systems',
-      path: '/docs/modules/isaac-ai-brain/chapters/ai-brain-overview/index',
+      path: '/docs/modules/isaac-ai-brain/chapters/ai-brain-overview',
     },
     {
       id: 'module-4',
       title: 'Module 4: Vision-Language-Action (VLA) Systems',
       description: 'Integrated perception and action systems for humanoid robots',
-      path: '/docs/modules/vla-systems/chapters/vla-overview/index',
+      path: '/docs/modules/vla-systems/chapters/vla-overview',
     },
   ];
 
