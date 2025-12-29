@@ -102,3 +102,17 @@ Thumbs.db:encryptable
 *.swp
 *.swo
 *~
+
+# Logs and Reports
+*.log
+ingestion_audit_log.txt
+all_doc_urls.txt
+sitemap_urls.txt
+url_coverage_report_*.txt
+audit_results.txt
+validation_connection.log
+validation_runner.log
+
+# Redundant Deployment Folders
+deploy-aibook/
+hf-deploy/

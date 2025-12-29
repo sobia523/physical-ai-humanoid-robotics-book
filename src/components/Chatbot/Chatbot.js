@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styles from './Chatbot.module.css';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_URL = process.env.REACT_APP_API_URL || 'https://sobia2-deploy-aibook.hf.space';
 
 const Chatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -166,11 +166,10 @@ const Chatbot = () => {
             {messages.map((message, index) => (
               <div
                 key={index}
-                className={`${styles.message} ${
-                  message.role === 'user'
+                className={`${styles.message} ${message.role === 'user'
                     ? styles.userMessage
                     : styles.assistantMessage
-                } ${message.error ? styles.errorMessage : ''}`}
+                  } ${message.error ? styles.errorMessage : ''}`}
               >
                 <div className={styles.messageContent}>{message.content}</div>
                 {message.sources && message.sources.length > 0 && (
