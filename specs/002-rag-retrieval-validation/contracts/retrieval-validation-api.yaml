@@ -1,0 +1,254 @@
+# API Contract for RAG Pipeline Retrieval Validation
+
+openapi: 3.0.0
+info:
+  title: RAG Pipeline Retrieval Validation API
+  version: 1.0.0
+  description: API for validating that stored embeddings and metadata in Qdrant can be successfully retrieved and inspected
+
+paths:
+  /validate-connection:
+    get:
+      summary: Validate connection to Qdrant collection
+      responses:
+        '200':
+          description: Connection successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Successfully connected to Qdrant collection"
+                  collection_stats:
+                    type: object
+                    properties:
+                      vectors_count:
+                        type: integer
+                        example: 2050
+                      config:
+                        type: object
+                        properties:
+                          optimizer_config:
+                            type: object
+                          vector_size:
+                            type: integer
+                            example: 1024
+                          distance:
+                            type: string
+                            example: "Cosine"
+        '500':
+          description: Connection failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Failed to connect to Qdrant collection"
+
+  /sample-records:
+    get:
+      summary: Retrieve sample records with metadata
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+          description: Number of sample records to retrieve
+      responses:
+        '200':
+          description: Sample records retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  records:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          example: "uuid-string"
+                        payload:
+                          type: object
+                          properties:
+                            url:
+                              type: string
+                              example: "https://example.com/docs/chapter1"
+                            module:
+                              type: string
+                              example: "ros2-nervous-system"
+                            chapter:
+                              type: string
+                              example: "01-introduction"
+                            section_title:
+                              type: string
+                              example: "Introduction"
+                            chunk_text:
+                              type: string
+                              example: "This is a sample chunk of text from the documentation..."
+                            token_length:
+                              type: integer
+                              example: 128
+                            timestamp:
+                              type: string
+                              format: date-time
+                              example: "2025-12-27T10:00:00Z"
+                            source:
+                              type: string
+                              example: "manual_ingestion"
+                        vector_size:
+                          type: integer
+                          example: 1024
+
+  /similarity-search:
+    post:
+      summary: Run similarity search on a test query
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query_text
+              properties:
+                query_text:
+                  type: string
+                  example: "What is ROS2 fundamentals?"
+                top_k:
+                  type: integer
+                  default: 5
+                  minimum: 1
+                  maximum: 20
+                threshold:
+                  type: number
+                  default: 0.5
+                  minimum: 0
+                  maximum: 1
+      responses:
+        '200':
+          description: Similarity search completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          example: "uuid-string"
+                        score:
+                          type: number
+                          format: float
+                          example: 0.85
+                        payload:
+                          type: object
+                          properties:
+                            url:
+                              type: string
+                              example: "https://example.com/docs/chapter1"
+                            chunk_text:
+                              type: string
+                              example: "This is a relevant chunk of text..."
+                            module:
+                              type: string
+                              example: "ros2-nervous-system"
+
+  /validation-report:
+    get:
+      summary: Generate comprehensive validation report
+      responses:
+        '200':
+          description: Validation report generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  report:
+                    type: object
+                    properties:
+                      timestamp:
+                        type: string
+                        format: date-time
+                        example: "2025-12-27T10:00:00Z"
+                      connection_status:
+                        type: boolean
+                        example: true
+                      collection_stats:
+                        $ref: '#/components/schemas/CollectionStats'
+                      sample_records_retrieved:
+                        type: integer
+                        example: 10
+                      validation_checks:
+                        type: object
+                        properties:
+                          embedding_dimensions_valid:
+                            type: boolean
+                            example: true
+                          metadata_integrity:
+                            type: boolean
+                            example: true
+                          url_mapping_valid:
+                            type: boolean
+                            example: true
+                          minimum_records_met:
+                            type: boolean
+                            example: true
+                      diagnostics:
+                        type: array
+                        items:
+                          type: string
+                      overall_status:
+                        type: string
+                        enum: [pass, fail]
+                        example: "pass"
+
+components:
+  schemas:
+    CollectionStats:
+      type: object
+      properties:
+        vectors_count:
+          type: integer
+          example: 2050
+        config:
+          type: object
+          properties:
+            optimizer_config:
+              type: object
+            vector_size:
+              type: integer
+              example: 1024
+            distance:
+              type: string
+              example: "Cosine"

@@ -1,0 +1,187 @@
+openapi: 3.0.0
+info:
+  title: RAG Chatbot API
+  description: API for RAG Chatbot that answers questions based on book content
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Check if the service is running and healthy
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  timestamp:
+                    type: string
+                    example: "2025-12-29T12:00:00Z"
+
+  /ask:
+    post:
+      summary: Ask a general question
+      description: Ask a question about the book content and receive a grounded answer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: string
+                  description: The question to ask
+                  example: "What is a Digital Twin?"
+      responses:
+        '200':
+          description: Successful response with grounded answer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnswerResponse'
+        '400':
+          description: Invalid request format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /ask-selected:
+    post:
+      summary: Ask a question with selected text context
+      description: Ask a question using additional context from selected text
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+                - selected_text
+              properties:
+                query:
+                  type: string
+                  description: The question to ask
+                  example: "Explain this concept"
+                selected_text:
+                  type: string
+                  description: The selected text to use as context
+                  example: "Digital twins are virtual replicas of physical systems..."
+
+      responses:
+        '200':
+          description: Successful response with context-aware answer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnswerResponse'
+        '400':
+          description: Invalid request format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    AnswerResponse:
+      type: object
+      properties:
+        answer:
+          type: string
+          description: The answer to the question
+          example: "A Digital Twin is a virtual representation of a physical system..."
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/Source'
+          description: List of sources used to generate the answer
+        confidence:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          description: Confidence score of the answer
+          example: 0.85
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the response
+          example: "2025-12-29T12:00:00Z"
+        context_used:
+          type: string
+          description: Context that was used to generate the answer
+          example: "Digital twins are virtual replicas of physical systems..."
+
+    Source:
+      type: object
+      properties:
+        url:
+          type: string
+          description: URL of the source document
+          example: "https://example.com/book/chapter1"
+        title:
+          type: string
+          description: Title of the source document
+          example: "Introduction to Digital Twins"
+        module:
+          type: string
+          description: Module name in the book structure
+          example: "digital-twins"
+        chapter:
+          type: string
+          description: Chapter name in the book structure
+          example: "introduction"
+        heading:
+          type: string
+          description: Section heading for the content
+          example: "What are Digital Twins?"
+        relevance_score:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          description: Similarity score between query and source
+          example: 0.92
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: "Invalid request format"
+        detail:
+          type: string
+          description: Additional error details
+          example: "Query field is required"
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the error
+          example: "2025-12-29T12:00:00Z"

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(findstr /n /C:\"return stats\" C:UsersTLSDownloadsclaudespeckitplusPhysical-AI-Humanoid-Robotics-Textbookbackendmain.py)",
+      "Bash(powershell -Command \"Get-Content C:\\\\Users\\\\TLS\\\\Downloads\\\\claudespeckitplus\\\\Physical-AI-Humanoid-Robotics-Textbook\\\\specs\\\\1-rag-pipeline\\\\tasks.md | Select-Object -Index 66,67,68,69,70,71,72\")",
+      "Bash(python -c \"import sys; sys.path.insert\\(0, ''.''\\); exec\\(open\\(''validate_connection.py''\\).read\\(\\)\\)\")"
+    ]
+  }
+}
