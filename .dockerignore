@@ -1,0 +1,10 @@
+.git
+.env
+backend/.env
+node_modules
+build
+dist
+.docusaurus
+nul
+*.log
+__pycache__

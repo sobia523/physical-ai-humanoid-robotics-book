@@ -81,6 +81,9 @@ output.json
 *.swp
 *.swo
 *~
+.env
+backend/.env
+nul
 .DS_Store
 Thumbs.db
 
