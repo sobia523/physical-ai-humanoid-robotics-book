@@ -39,6 +39,7 @@ log/
 *.log
 *.out
 *.txt
+!requirements.txt
 *.bag
 *.bag.active
 *.pdf
