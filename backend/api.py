@@ -29,10 +29,24 @@ logger = logging.getLogger(__name__)
 
 # Import the agent handler
 try:
+    # Try absolute import from the backend package
     from backend.agent import agent_handler_async, initialize_agent
-except ImportError as e:
-    logger.error(f"Failed to import agent module: {e}")
-    from agent import agent_handler_async, initialize_agent
+    logger.info("Successfully imported from backend.agent")
+except ImportError:
+    try:
+        # Try relative import
+        from .agent import agent_handler_async, initialize_agent
+        logger.info("Successfully imported from .agent")
+    except (ImportError, ValueError):
+        try:
+            # Try direct import (if backend is in sys.path)
+            import agent
+            agent_handler_async = agent.agent_handler_async
+            initialize_agent = agent.initialize_agent
+            logger.info("Successfully imported from agent directly")
+        except ImportError as e:
+            logger.error(f"Module 'agent' could not be found anywhere: {e}")
+            raise
 
 # Create FastAPI app
 app = FastAPI(

@@ -25,19 +25,27 @@ sys.path.insert(0, project_root)
 
 # Handle import based on execution context
 try:
-    from backend.config import Config
-    from backend.utils.qdrant_helper import (
+    from .config import Config
+    from .utils.qdrant_helper import (
         connect_qdrant,
         build_query_embedding,
         run_similarity_search
     )
-except ImportError:
-    from config import Config
-    from utils.qdrant_helper import (
-        connect_qdrant,
-        build_query_embedding,
-        run_similarity_search
-    )
+except (ImportError, ValueError):
+    try:
+        from backend.config import Config
+        from backend.utils.qdrant_helper import (
+            connect_qdrant,
+            build_query_embedding,
+            run_similarity_search
+        )
+    except ImportError:
+        from config import Config
+        from utils.qdrant_helper import (
+            connect_qdrant,
+            build_query_embedding,
+            run_similarity_search
+        )
 
 load_dotenv()
 
